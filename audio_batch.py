@@ -19,9 +19,11 @@ def _determineConfigFileAbs():
 def _parseConfig( confFileAbs ):
 
     def _parseJob( confParser, jobName ):
-        sourceFilePatterns = confParser.get( jobName, "source_file_extensions" ).split( ';' )
+        sourceFileExtensions = set( confParser.get( jobName, "source_file_extensions" ).split( ';' ) )
+        sourceExcludePatterns = set( confParser.get( jobName, "source_file_excludes" ).split( ';' ) )
         jobConfig = _Config.JobConfig( confParser.get( jobName, "source_path" ),
-                                       sourceFilePatterns,
+                                       sourceFileExtensions,
+                                       sourceExcludePatterns,
                                        confParser.get( jobName, "target_path" ),
                                        confParser.get( jobName, "shell_cmd" ) )
         return jobConfig
@@ -35,7 +37,18 @@ def _parseConfig( confFileAbs ):
 
     return config
 
-def _all_file_paths(baseDirAbs, extensions=None):
+def _all_file_paths(baseDirAbs, extensions=None, excludePatterns=None):
+
+    def _shouldExclude( path, excludePatterns ):
+        if excludePatterns == None:
+            return False
+
+        for excludePat in excludePatterns:
+            if fnmatch.fnmatch( path, excludePat ):
+                return True
+
+        return False
+
     paths = set()
     for path, subdirs, files in os.walk(baseDirAbs):
         for name in files:
@@ -48,7 +61,8 @@ def _all_file_paths(baseDirAbs, extensions=None):
             for pattern in patterns:
                 if fnmatch.fnmatch(name, pattern):
                     absolutePath = os.path.join(path, name)
-                    paths.add( os.path.relpath( absolutePath, baseDirAbs ) )
+                    if not _shouldExclude( absolutePath, excludePatterns ):
+                        paths.add( os.path.relpath( absolutePath, baseDirAbs ) )
                     break
 
     return paths
@@ -86,15 +100,17 @@ class _Config:
         for jobName, jobConfig in self.jobConfigs.items():
             strRep += "  %s:\n" % jobName
             strRep += "    source: %s\n" % jobConfig.sourcePathAbs
-            strRep += "    source patterns: %s\n" % jobConfig.sourceFileExtensions
+            strRep += "    source included extensions: %s\n" % jobConfig.sourceFileExtensions
+            strRep += "    source excluded patterns: %s\n" % jobConfig.sourceExcludePatterns
             strRep += "    target: %s\n" % jobConfig.targetPathAbs
             strRep += "    shell command: %s\n" % jobConfig.shellCmd
         return strRep
         
     class JobConfig:        
-        def __init__( self, sourcePathAbs, sourceFileExtensions, targetPathAbs, shellCmd ):
+        def __init__( self, sourcePathAbs, sourceFileExtensions, sourceExcludePatterns, targetPathAbs, shellCmd ):
             self.sourcePathAbs = sourcePathAbs
             self.sourceFileExtensions = sourceFileExtensions
+            self.sourceExcludePatterns = sourceExcludePatterns
             self.targetPathAbs = targetPathAbs
             self.shellCmd = shellCmd
 
@@ -106,11 +122,14 @@ def main(args):
     jobConfig = config.jobConfigs['original_to_portable']
     i = 0
 
-    sourcePaths = _all_file_paths( jobConfig.sourcePathAbs, jobConfig.sourceFileExtensions )
+    sourcePaths = _all_file_paths( jobConfig.sourcePathAbs,
+                                   jobConfig.sourceFileExtensions,
+                                   jobConfig.sourceExcludePatterns )
     for sourceFile in sourcePaths:
         i += 1
-        if i == 100:
-            print sourceFile
+        print sourceFile
+#        if i == 100:
+#            print sourceFile
     print i
 
     targetPaths = _all_file_paths( jobConfig.targetPathAbs )
