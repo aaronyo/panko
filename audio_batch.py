@@ -128,11 +128,11 @@ def main(args):
     sourcePaths = _all_file_paths( jobConfig.sourcePathAbs,
                                    jobConfig.sourceFileExtensions,
                                    jobConfig.sourceExcludePatterns )
-    for sourceFile in sourcePaths:
+    for sourceFile in sorted( sourcePaths ):
         i += 1
-        print sourceFile
-#        if i == 100:
-#            print sourceFile
+#        print sourceFile
+        if i == 100:
+            print sourceFile
     print i
 
     targetPaths = _all_file_paths( jobConfig.targetPathAbs )
