@@ -20,7 +20,10 @@ def _parseConfig( confFileAbs ):
 
     def _parseJob( confParser, jobName ):
         sourceFileExtensions = set( confParser.get( jobName, "source_file_extensions" ).split( ';' ) )
-        sourceExcludePatterns = set( confParser.get( jobName, "source_file_excludes" ).split( ';' ) )
+        if confParser.has_option( jobName, "source_file_extensions" ):
+            sourceExcludePatterns = set( confParser.get( jobName, "source_file_excludes" ).split( ';' ) )
+        else:
+            souceExcludePatterns = None
         jobConfig = _Config.JobConfig( confParser.get( jobName, "source_path" ),
                                        sourceFileExtensions,
                                        sourceExcludePatterns,
