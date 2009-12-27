@@ -7,6 +7,7 @@ import optparse
 import subprocess
 import ConfigParser
 import shutil
+import subprocess
 
 _logger = logging.getLogger();
 
@@ -84,6 +85,15 @@ def _all_file_paths(baseDirAbs, extensions=None, excludePatterns=None):
 
     return paths
 
+# leaves the '.' on the end so that file sort order doesn't change
+def _strip_extension( path, extensions ):
+    for ext in extensions:
+        fileSuffix = os.extsep + ext
+        if path.endswith( fileSuffix ):
+            # leave the '.' on the end so that sorting is not disrupted
+            return path[: 1-len(fileSuffix) ]
+            break
+    
 
 def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExtensions ):
     if sourceExtensions == None or targetExtensions == None:
@@ -92,12 +102,7 @@ def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExten
     def _strip_extensions( filePaths, extensions ):
         stripped = []
         for path in filePaths:
-            for ext in extensions:
-                fileSuffix = os.extsep + ext
-                if path.endswith( fileSuffix ):
-                    # leave the '.' on the end so that sorting is not disrupted
-                    stripped.append( path[: 1-len(fileSuffix) ] )
-                    break
+            stripped.append( _strip_extension( path, extensions ) )            
         return stripped
 
     sortedSources = sorted( sources )
@@ -143,49 +148,61 @@ def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExten
     return sourceAdds, targetDeletes
 
 
-def _convertToMp3( sourceDir, relativePaths, targetDir ):
-    pass
+def _match_extensions( relativePaths, extensions ):
+    patterns = set()
+    for ext in extensions:
+        patterns.add('*' + os.extsep + ext)
 
-
-def _copy( sourceDirAbs, relativePaths, extensions, targetDirAbs ):
-    if extensions == None or len( extensions ) == 0:
-        return
-    else:
-        patterns=set()
-        for ext in extensions:
-            patterns.add('*' + os.extsep + ext)
-
-#    print "patterns:"
-#    print patterns
-#    print relativePaths
-    # Count the number of files we need to copy so we can display relative progress
-    totalCopies = 0
+    matches = []
     for relPath in relativePaths:
-#        print "path: " + relPath
         for pattern in patterns:
-#            print "pattern: " + pattern
             if fnmatch.fnmatch(relPath, pattern):
-#                print "yay"
-                totalCopies += 1
+                matches.append( relPath )
+    return matches
 
-    # Now do the copying
+
+def _convertToMp3( sourceDir, relPaths, sourceExtensions, targetDir ):
+    totalCopies = len( relPaths )
+    if totalCopies > 0:
+        i = 0
+        for relPath in relPaths:
+            i+=1
+            sourcePathAbs = os.path.join( sourceDir, relPath )
+            relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
+            targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
+            # Use sequences for the commands so that subprocess module gets to worry about special chars
+            # in files (rather than my code)
+            decodeCmd = ['ffmpeg', '-i', sourcePathAbs, '-f', 'wav', '-']
+            encodeCmd = ['lame', '--replaygain-accurate', '--vbr-new', '-b192', '-q0', '-V0', '-', targetPathAbs]
+            _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
+
+            targetLeafDir = os.path.dirname( targetPathAbs )
+            if not os.path.isdir( targetLeafDir ):
+                os.makedirs( targetLeafDir )
+
+            decodeProc = subprocess.Popen(decodeCmd, stdout=subprocess.PIPE)
+            encodeProc = subprocess.Popen(encodeCmd, stdin=decodeProc.stdout)
+            encodeProc.communicate();
+    else:
+        _logger.info( "No files to convert" )
+
+def _copy( sourceDirAbs, relPaths, targetDirAbs ):
+    totalCopies = len( relPaths )
     if totalCopies > 0:
         _logger.info( "Copying %d files" % totalCopies )
         i = 0
         for relPath in relativePaths:
-            for pattern in patterns:
-                if fnmatch.fnmatch(relPath, pattern):
-                    i += 1
-                    sourcePathAbs = os.path.join( sourceDirAbs, relPath )
-                    targetPathAbs = os.path.join( targetDirAbs, relPath )
-                    _logger.debug( "copying %d of %d: %s" % (i, totalCopies, relPath) )
-
-                    targetLeafDir = os.path.dirname( targetPathAbs )
-                    if not os.path.isdir( targetLeafDir ):
-                        os.makedirs( targetLeafDir )
+            i += 1
+            sourcePathAbs = os.path.join( sourceDirAbs, relPath )
+            targetPathAbs = os.path.join( targetDirAbs, relPath )
+            _logger.debug( "Copying %d of %d: %s" % (i, totalCopies, relPath) )
+            
+            targetLeafDir = os.path.dirname( targetPathAbs )
+            if not os.path.isdir( targetLeafDir ):
+                os.makedirs( targetLeafDir )
                     
-                    shutil.copyfile( sourcePathAbs, targetPathAbs )
-                    break;
+            shutil.copyfile( sourcePathAbs, targetPathAbs )
+            break;
     else:
         _logger.info( "No files to copy" )
 
@@ -255,7 +272,10 @@ class _Config:
                       excludePatterns, targetDirAbs, shellCmd ):
             self.sourceDirAbs = sourceDirAbs
             self.extensionsToConvert = extensionsToConvert
-            self.extensionsToCopy = extensionsToCopy
+            if extensionsToCopy == None:
+                self.extensionsToCopy = []
+            else:
+                self.extensionsToCopy = extensionsToCopy
             self.excludePatterns = excludePatterns
             self.targetDirAbs = targetDirAbs
             self.shellCmd = shellCmd
@@ -293,9 +313,15 @@ def main(args):
                                                              allExtensions, targetDirExtensions )
     print "adds: %d" % len( sourceAdds )
     print "dels: %d" % len( targetDeletes)
-    print targetDeletes
 
-    _copy( jobConfig.sourceDirAbs, sourceAdds, jobConfig.extensionsToCopy, jobConfig.targetDirAbs )
+    if len( jobConfig.extensionsToCopy ) > 0:
+        relPathsToCopy = _match_extensions( sourceAdds, jobConfig.extensionsToCopy )
+        _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
+
+    if len( jobConfig.extensionsToConvert ) > 0:
+        relPathsToConvert = _match_extensions( sourceAdds, jobConfig.extensionsToConvert )
+        _convertToMp3( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert, jobConfig.targetDirAbs )
+
     _delete( jobConfig.targetDirAbs, targetDeletes )
 
 if __name__ == "__main__":
