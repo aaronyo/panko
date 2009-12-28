@@ -8,6 +8,7 @@ import subprocess
 import ConfigParser
 import shutil
 import subprocess
+import qllib
 
 _logger = logging.getLogger();
 
@@ -46,8 +47,10 @@ def _parseConfig( confFileAbs ):
     confParser = ConfigParser.ConfigParser()
     confParser.read( confFileAbs )
 
-    logFileAbs = confParser.get("system", "log_file")
-    config = _Config( logFileAbs )
+    logFileAbs = confParser.get( "system", "log_file" )
+    defaultDecoderSeq = confParser.get( "default_decoder", "command_seq" )
+    defaultEncoderSeq = confParser.get( "default_encoder", "command_seq" )
+    config = _Config( logFileAbs, defaultDecoderSeq, defaultEncoderSeq )
 
     jobNames = confParser.options( "jobs" )
     for jobName in jobNames:
@@ -94,10 +97,16 @@ def _strip_extension( path, extensions ):
             return path[: 1-len(fileSuffix) ]
             break
     
-
-def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExtensions ):
+# Determin all adds, replaces and deletes needed for the target folder based
+# on changes made to the source folder since the last run
+def _determine_updates( sources, targets, sourceExtensions, targetExtensions ):
     if sourceExtensions == None or targetExtensions == None:
-        raise Exception("Must supply extensions to ignore")
+        raise Exception("Must supply extensions for sources and targets")
+
+    def _needs_replacement( sourcePathAbs, targetPathAbs ):
+        sourceModTime = os.stat(sourcePathAbs)[stat.ST_MTIME]
+        targetModTime = os.stat(targetPathAbs)[stat.ST_MTIME]
+        return sourceModTime > targetModTime
 
     def _strip_extensions( filePaths, extensions ):
         stripped = []
@@ -112,6 +121,7 @@ def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExten
     strippedSortedTargets = _strip_extensions( sortedTargets, targetExtensions )
     
     sourceAdds = []
+    sourceReplacements = []
     targetDeletes = []
     numSources = len( strippedSortedSources ) 
     numTargets = len( strippedSortedTargets ) 
@@ -133,8 +143,10 @@ def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExten
             # This algorithm will not allow duplicate titles to remain in the target folder
             if comparison == 0:
                 sIdx += 1
-                # Indicate the match so we don't delete the taret on the next loop
+                # Indicate the match so we don't delete the target on the next loop
                 targetMatched = True
+                if _needs_replacement( sortedSources[sIdx], sortedTargets[tIdx] ):
+                    sourceReplacements.append( sortedSources[sIdx] )
             elif comparison < 0:
                 assert(not targetMatched)
                 sourceAdds.append( sortedSources[sIdx] )
@@ -145,7 +157,7 @@ def _determine_adds_and_deletes( sources, targets, sourceExtensions, targetExten
                 tIdx += 1
                 targetMatched = False
     
-    return sourceAdds, targetDeletes
+    return sourceAdds, sourceReplacements, targetDeletes
 
 
 def _match_extensions( relativePaths, extensions ):
@@ -161,65 +173,78 @@ def _match_extensions( relativePaths, extensions ):
     return matches
 
 
-def _convertToMp3( sourceDir, relPaths, sourceExtensions, targetDir ):
+def _copy_tags( sourcePathAbs, targetPathAbs ):
+    source = qllib.AudioFile( sourcePathAbs )
+    target = qllib.AudioFile( targetPathAbs )
+
+    for tag_name in source:
+        target[tag_name] = source[tag_name]
+
+    target.write()
+
+
+def _convert( sourceDir, relPaths, sourceExtensions, targetDir, decoderStr, encoderStr ):
     totalCopies = len( relPaths )
-    if totalCopies > 0:
-        i = 0
-        for relPath in relPaths:
-            i+=1
-            sourcePathAbs = os.path.join( sourceDir, relPath )
-            relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
-            targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
-            # Use sequences for the commands so that subprocess module gets to worry about special chars
-            # in files (rather than my code)
-            decodeCmd = ['ffmpeg', '-i', sourcePathAbs, '-f', 'wav', '-']
-            encodeCmd = ['lame', '--replaygain-accurate', '--vbr-new', '-b192', '-q0', '-V0', '-', targetPathAbs]
-            _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
+    i = 0
+    for relPath in relPaths:
+        i += 1
+        
+        sourcePathAbs = os.path.join( sourceDir, relPath )
+        decodeStr = decodeStr.format(inFile="sourcePathAbs")
+        decodeCmd = eval( decodeStr )
 
-            targetLeafDir = os.path.dirname( targetPathAbs )
-            if not os.path.isdir( targetLeafDir ):
-                os.makedirs( targetLeafDir )
+        relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
+        targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
+        encodeStr = decodeStr.format(outFile="targetPathAbs")
+        encodeCmd = eval( encodeStr )
 
-            decodeProc = subprocess.Popen(decodeCmd, stdout=subprocess.PIPE)
-            encodeProc = subprocess.Popen(encodeCmd, stdin=decodeProc.stdout)
-            encodeProc.communicate();
-    else:
-        _logger.info( "No files to convert" )
+        # Use sequences for the commands so that subprocess module gets to worry about special chars
+        # in files (rather than my code)
+        #            decodeCmd = ['ffmpeg', '-i', sourcePathAbs, '-f', 'wav', '-']
+        #            encodeCmd = ['lame', '--replaygain-accurate', '--vbr-new', '-b192', '-q0', '-V0', '-', targetPathAbs]
+
+        _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
+        _logger.debug( " ".join(decodeCmd) + " | " + " ".join(encodeCmd) )
+
+        targetLeafDir = os.path.dirname( targetPathAbs )
+        if not os.path.isdir( targetLeafDir ):
+            os.makedirs( targetLeafDir )
+
+        decodeProc = subprocess.Popen(decodeCmd, stdout=subprocess.PIPE)
+        encodeProc = subprocess.Popen(encodeCmd, stdin=decodeProc.stdout)
+        encodeProc.communicate();
+
+        _copy_tags( sourcePathAbs, targetPathAbs )
 
 def _copy( sourceDirAbs, relPaths, targetDirAbs ):
     totalCopies = len( relPaths )
-    if totalCopies > 0:
-        _logger.info( "Copying %d files" % totalCopies )
-        i = 0
-        for relPath in relativePaths:
-            i += 1
-            sourcePathAbs = os.path.join( sourceDirAbs, relPath )
-            targetPathAbs = os.path.join( targetDirAbs, relPath )
-            _logger.debug( "Copying %d of %d: %s" % (i, totalCopies, relPath) )
+    i = 0
+    for relPath in relativePaths:
+        i += 1
+        sourcePathAbs = os.path.join( sourceDirAbs, relPath )
+        targetPathAbs = os.path.join( targetDirAbs, relPath )
+        _logger.debug( "Copying %d of %d: %s" % (i, totalCopies, relPath) )
             
-            targetLeafDir = os.path.dirname( targetPathAbs )
-            if not os.path.isdir( targetLeafDir ):
-                os.makedirs( targetLeafDir )
+        targetLeafDir = os.path.dirname( targetPathAbs )
+        if not os.path.isdir( targetLeafDir ):
+            os.makedirs( targetLeafDir )
                     
-            shutil.copyfile( sourcePathAbs, targetPathAbs )
-            break;
-    else:
-        _logger.info( "No files to copy" )
-
+        shutil.copyfile( sourcePathAbs, targetPathAbs )
+        break;
 
 def _delete( targetDirAbs, relativePaths ):
     for relPath in relativePaths:
         absPath = os.path.join( targetDirAbs, relPath )
-        _logger.info( "Deleting: %s" % absPath )
+        _logger.debug( "Deleting: %s" % absPath )
         os.remove( absPath )
         
 
 def _setupLogging( logFileAbs, isVerbose ):
 
-    logFileAbs = os.path.expanduser(logFileAbs)
+    logFileAbs = os.path.expanduser( logFileAbs )
     logging.getLogger().setLevel( logging.DEBUG )
 
-    fileHandler = logging.FileHandler( filename = logFileAbs, mode = 'w')
+    fileHandler = logging.FileHandler( filename = logFileAbs, mode = 'a')
     # We'll always send full debug logging (which really isn't _that_ much)
     # to the file, and only info level to the console unless verbse is
     # requested
@@ -246,14 +271,15 @@ def _setupLogging( logFileAbs, isVerbose ):
     logging.getLogger().addHandler(console)
 
     if not isVerbose:
-        _logger.info( "For verbose/debug output use '-b' or see log file: "
-                      + logFileAbs )
+        _logger.info( "For verbose/debug output use '-b' or see log file: " + logFileAbs )
 
 
 class _Config:
-    def __init__( self, logFileAbs ):
+    def __init__( self, logFileAbs, defaultDecoder, defaultEncoder ):
         self.jobConfigs = {}
         self.logFileAbs = logFileAbs
+        self.defaultDecoderSeq = defaultDecoder
+        self.defaultEncoderSeq = defaultEncoder
 
     def __str__( self ):
         strRep = 'jobs:\n'
@@ -280,49 +306,66 @@ class _Config:
             self.targetDirAbs = targetDirAbs
             self.shellCmd = shellCmd
 
-def main(args):
-    
-    confFileAbs = _determineConfigFileAbs()
-    config = _parseConfig( confFileAbs )
-    _setupLogging( config.logFileAbs, isVerbose = True )
-    print( config )
-    jobConfig = config.jobConfigs['original_to_portable']
-    i = 0
-
+def _process_job( jobConfig, decodeSeq, encodeSeq ):
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
     sourcePaths = _all_file_paths( jobConfig.sourceDirAbs,
                                    allExtensions,
                                    jobConfig.excludePatterns )
-    for sourceFile in sorted( sourcePaths ):
-        i += 1
-#        print sourceFile
-        if i == 100:
-            print sourceFile
-    print i
+    sourcePaths = sorted( sourcePaths ):
 
-    i = 0
     targetDirExtensions = jobConfig.extensionsToCopy.union(['mp3'])
     targetPaths = _all_file_paths( jobConfig.targetDirAbs,
                                    targetDirExtensions,
                                    jobConfig.excludePatterns )
-    for sourceFile in targetPaths:
-        i += 1
-    print i
+    targetPaths = sorted( targetPaths )
 
-    sourceAdds, targetDeletes = _determine_adds_and_deletes( sourcePaths, targetPaths,
-                                                             allExtensions, targetDirExtensions )
-    print "adds: %d" % len( sourceAdds )
-    print "dels: %d" % len( targetDeletes)
+    sourceAdds, sourceReplacements, targetDeletes = \
+        _determine_updates( sourcePaths, targetPaths, allExtensions, targetDirExtensions )
 
-    if len( jobConfig.extensionsToCopy ) > 0:
-        relPathsToCopy = _match_extensions( sourceAdds, jobConfig.extensionsToCopy )
+    _logger.info( "Sources not found in target directory: %d" % len(sourceAdds) )
+    _logger.info( "Sources changed since corresponding target created: %d" % len(sourceUpdates) )
+
+    # We process adds and replaces the same way -- replaces just end up leading to overwriting an 
+    # existing file
+    sourceChanges = []
+    sourceChanges.extend(sourceAdds)
+    sourceChanges.extend(sourceReplacements)
+
+    copyEnabled = len( jobConfig.extensionsToCopy ) > 0
+    conversionEnabled = len( jobConfig.extensionsToConvert ) > 0
+
+    if copyEnabled:
+        relPathsToCopy = _match_extensions( sourceChanges, jobConfig.extensionsToCopy )
+        _logger.info( "Copies to be done: %d" % len(relPathsToCopy) )
+    else: 
+        _logger.info( "No extensions chosen to be copied" )
+       
+    if conversionEnabled:
+        relPathsToConvert = _match_extensions( sourceChanges, jobConfig.extensionsToConvert )
+        _logger.info( "Conversions to be done: %d" % len(relPathsToConvert) )
+    else:
+        _logger.info( "No extensions chosen to be converted" )
+
+    _logger.info( "Compressed audio to be deleted: %d" % len(targetDeletes) )
+
+    if copyEnabled:
         _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
-
-    if len( jobConfig.extensionsToConvert ) > 0:
-        relPathsToConvert = _match_extensions( sourceAdds, jobConfig.extensionsToConvert )
-        _convertToMp3( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert, jobConfig.targetDirAbs )
+    if conversionEnabled:
+        _convert( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert,
+                  jobConfig.targetDirAbs, decodeSeq, encodeSeq )
 
     _delete( jobConfig.targetDirAbs, targetDeletes )
+
+
+def main(args):    
+    confFileAbs = _determineConfigFileAbs()
+    config = _parseConfig( confFileAbs )
+    _setupLogging( config.logFileAbs, isVerbose = True )
+    _logger.info( "Config:\n" + config)
+
+    jobConfig = config.jobConfigs['original_to_portable']
+    _process_job( jobConfig, config.defaultDecodeSeq, config.defaultEncodeSeq )
+
 
 if __name__ == "__main__":
     main(sys.argv)
