@@ -16,8 +16,18 @@ _logger = logging.getLogger();
 def _buildCmdLineParser():
     parser = OptionParser.OptionParser()
 
-    return parser
+    parser.add_option("-f",
+                      "--no-confirmation",
+                      action="store_false", 
+                      dest="noConfirmation",
+                      default=True,
+                      help=
+"""Supplying this option avoids confirmation or any user input and is
+useful for automated runs.  By default, console input is required to
+confirm tasks before execution.  """ )
 
+    return parser
+_
 def _determineConfigFileAbs():
     homePath = os.path.expanduser('~')
     return os.path.join(homePath, '.audio_batch/audio_batch.ini')
@@ -308,7 +318,24 @@ class _Config:
             self.targetDirAbs = targetDirAbs
 
 
+def _isWorkToBeDone( copyList, convertList, deleteList ):
+    if len(copyList) + len(convertList) + len(deleteList) > 0:
+        return True
+    else:
+        return False
+
+def _isContinueConfirmed( forceConfirmation ):
+    if forceConfirmation:
+        return True
+    else:
+        print( "Continue with identified tasks?" )
+        isConfirmed = raw_input( "[y/n] >" ) == 'y'
+        return isConfirmed
+
 def _process_job( jobConfig, decodeSeq, encodeSeq ):
+    cmdLineParser = _buildCmdLineParser()
+    (cmdLineOptions, cmdLineArgs) = cmdLineParser.parse_args(args[1:])
+
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
     sourcePaths = _all_file_paths( jobConfig.sourceDirAbs,
                                    allExtensions,
@@ -349,15 +376,20 @@ def _process_job( jobConfig, decodeSeq, encodeSeq ):
     else:
         _logger.info( "No extensions chosen to be converted" )
 
-    _logger.info( "%4d matchless, previously converted files to be deleted" % len(targetDeletes) )
+    _logger.info( "%4d matchless target files to be deleted" % len(targetDeletes) )
 
-    if copyEnabled:
-        _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
-    if conversionEnabled:
-        _convert( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert,
-                  jobConfig.targetDirAbs, decodeSeq, encodeSeq )
+    if _isWorkToBeDone( relPathsToCopy, relPathsToConvert, targetDeletes ):
+        if _isContinueConirmed( cmdLineOptions.noConfirmation ):
+            if copyEnabled:
+                _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
 
-    _delete( jobConfig.targetDirAbs, targetDeletes )
+            if conversionEnabled:
+                _convert( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert,
+                          jobConfig.targetDirAbs, decodeSeq, encodeSeq )
+
+            _delete( jobConfig.targetDirAbs, targetDeletes )
+    else:
+        _logger.info( "There is nothing to do for this job." )
 
 
 def main(args):    
