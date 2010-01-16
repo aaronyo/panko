@@ -14,13 +14,13 @@ import qllib
 _logger = logging.getLogger();
 
 def _buildCmdLineParser():
-    parser = OptionParser.OptionParser()
+    parser = optparse.OptionParser()
 
     parser.add_option("-f",
                       "--no-confirmation",
-                      action="store_false", 
-                      dest="noConfirmation",
-                      default=True,
+                      action="store_true", 
+                      dest="forceConfirm",
+                      default=False,
                       help=
 """Supplying this option avoids confirmation or any user input and is
 useful for automated runs.  By default, console input is required to
@@ -324,18 +324,15 @@ def _isWorkToBeDone( copyList, convertList, deleteList ):
     else:
         return False
 
-def _isContinueConfirmed( forceConfirmation ):
-    if forceConfirmation:
+def _isContinueConfirmed( forceConfirm ):
+    if forceConfirm:
         return True
     else:
         print( "Continue with identified tasks?" )
-        isConfirmed = raw_input( "[y/n] >" ) == 'y'
+        isConfirmed = raw_input( "['y' to continue] > " ) == 'y'
         return isConfirmed
 
-def _process_job( jobConfig, decodeSeq, encodeSeq ):
-    cmdLineParser = _buildCmdLineParser()
-    (cmdLineOptions, cmdLineArgs) = cmdLineParser.parse_args(args[1:])
-
+def _process_job( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
     sourcePaths = _all_file_paths( jobConfig.sourceDirAbs,
                                    allExtensions,
@@ -379,7 +376,7 @@ def _process_job( jobConfig, decodeSeq, encodeSeq ):
     _logger.info( "%4d matchless target files to be deleted" % len(targetDeletes) )
 
     if _isWorkToBeDone( relPathsToCopy, relPathsToConvert, targetDeletes ):
-        if _isContinueConirmed( cmdLineOptions.noConfirmation ):
+        if _isContinueConfirmed( forceConfirm ):
             if copyEnabled:
                 _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
 
@@ -393,6 +390,9 @@ def _process_job( jobConfig, decodeSeq, encodeSeq ):
 
 
 def main(args):    
+    cmdLineParser = _buildCmdLineParser()
+    (cmdLineOptions, cmdLineArgs) = cmdLineParser.parse_args(args[1:])
+
     confFileAbs = _determineConfigFileAbs()
     config = _parseConfig( confFileAbs )
     _setupLogging( config.logFileAbs, isVerbose = True )
@@ -400,7 +400,8 @@ def main(args):
 
     for jobName, jobConfig in config.jobConfigs.items():
         _logger.info( "Processing job: %s" % jobName )
-        _process_job( jobConfig, config.defaultDecoderSeq, config.defaultEncoderSeq )
+        _process_job( jobConfig, config.defaultDecoderSeq, config.defaultEncoderSeq,
+                      cmdLineOptions.forceConfirm)
 
 
 if __name__ == "__main__":
