@@ -68,7 +68,7 @@ def _parseConfig( confFileAbs ):
 
     return config
 
-def _all_file_paths(baseDirAbs, extensions=None, excludePatterns=None):
+def _allFilePaths(baseDirAbs, extensions=None, excludePatterns=None):
 
     def _shouldExclude( path, excludePatterns ):
         if excludePatterns == None or len(excludePatterns) == 0:
@@ -193,27 +193,43 @@ def _copy_tags( sourcePathAbs, targetPathAbs ):
     target.write()
 
 
-def _convert( sourceDir, relPaths, sourceExtensions, targetDir, decodeStr, encodeStr ):
-    totalCopies = len( relPaths )
-    i = 0
-    for relPath in relPaths:
-        i += 1
-        
-        sourcePathAbs = os.path.join( sourceDir, relPath )
-        decodeStr = decodeStr.format(inFile="sourcePathAbs")
-        decodeCmd = eval( decodeStr )
+class FileConverter:
+    def __init__( self, decodeStr, encodeStr, localCopyFirst = False ):
+        self.decodeStr = decodeStr
+        self.encodeStr = encodeStr
+        self.localCopyFirst = localCopyFirst
 
-        relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
-        targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
-        encodeStr = encodeStr.format(outFile="targetPathAbs")
-        encodeCmd = eval( encodeStr )
+    @staticmethod
+    def _localTempCopy( fileAbs ):
+        filename = os.path.basename( fileAbs )
+        localCopyAbs = os.path.join( os.sep, "tmp", filename )
+        _logger.debug( 'Making local copy: "%s" to "%s"' % (fileAbs, localCopyAbs) )
+        shutil.copyfile( fileAbs, localCopyAbs )
+        return localCopyAbs
+
+    def convert( self, sourcePathAbs, targetPathAbs ):
+
+        # Copy files to a known local location.  Decoding/Encoding processes may run
+        # slowly if operating against remote fles.
+        # TODO: Determine the file system device type and skip this step if the source and target
+        # locations are local.
+        if ( self.localCopyFirst ):
+            tempSourcePathAbs = localTempCopy( sourcePathAbs )
+            pathToConvertAbs = tempSourcePathAbs
+        else:
+            tempSourcePathAbs = None
+            pathToConvertAbs = sourcePathAbs
+            
+
+        specificDecodeStr = self.decodeStr.format(inFile="pathToConvertAbs")
+        decodeCmd = eval( specificDecodeStr )
+
+        specificEncodeStr = self.encodeStr.format(outFile="targetPathAbs")
+        encodeCmd = eval( specificEncodeStr )
 
         # Use sequences for the commands so that subprocess module gets to worry about special chars
         # in files (rather than my code)
-        #            decodeCmd = ['ffmpeg', '-i', sourcePathAbs, '-f', 'wav', '-']
-        #            encodeCmd = ['lame', '--replaygain-accurate', '--vbr-new', '-b192', '-q0', '-V0', '-', targetPathAbs]
 
-        _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
         _logger.debug( " ".join(decodeCmd) + " | " + " ".join(encodeCmd) )
 
         targetLeafDir = os.path.dirname( targetPathAbs )
@@ -224,7 +240,26 @@ def _convert( sourceDir, relPaths, sourceExtensions, targetDir, decodeStr, encod
         encodeProc = subprocess.Popen(encodeCmd, stdin=decodeProc.stdout)
         encodeProc.communicate();
 
-        _copy_tags( sourcePathAbs, targetPathAbs )
+        _copy_tags( pathToConvertAbs, targetPathAbs )
+
+        if ( tempSourcePathAbs != None ):
+            os.remove( tempSourcePathAbs )
+        
+
+def _convert( sourceDir, relPaths, sourceExtensions, targetDirAbs, decodeStr, encodeStr ):
+
+    converter = FileConverter( decodeStr, encodeStr )
+    totalCopies = len( relPaths )
+    i = 0
+    for relPath in relPaths:
+        i += 1
+        _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
+        sourcePathAbs = os.path.join( sourceDir, relPath )
+        relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
+        targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
+        converter.convert( sourcePathAbs, targetPathAbs )
+        
+        
 
 def _copy( sourceDirAbs, relPaths, targetDirAbs ):
     totalCopies = len( relPaths )
@@ -239,7 +274,7 @@ def _copy( sourceDirAbs, relPaths, targetDirAbs ):
         if not os.path.isdir( targetLeafDir ):
             os.makedirs( targetLeafDir )
                     
-        shutil.copyfile( sourcePathAbs, targetPathAbs )
+        shutil.copyfile( sourcePathAbs, targetPathAbs) 
         break;
 
 def _delete( targetDirAbs, relativePaths ):
@@ -332,15 +367,15 @@ def _isContinueConfirmed( forceConfirm ):
         isConfirmed = raw_input( "['y' to continue] > " ) == 'y'
         return isConfirmed
 
-def _process_job( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
+def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
-    sourcePaths = _all_file_paths( jobConfig.sourceDirAbs,
+    sourcePaths = _allFilePaths( jobConfig.sourceDirAbs,
                                    allExtensions,
                                    jobConfig.excludePatterns )
     sourcePaths = sorted( sourcePaths )
 
     targetDirExtensions = jobConfig.extensionsToCopy.union(['mp3'])
-    targetPaths = _all_file_paths( jobConfig.targetDirAbs,
+    targetPaths = _allFilePaths( jobConfig.targetDirAbs,
                                    targetDirExtensions,
                                    jobConfig.excludePatterns )
     targetPaths = sorted( targetPaths )
@@ -400,7 +435,7 @@ def main(args):
 
     for jobName, jobConfig in config.jobConfigs.items():
         _logger.info( "Processing job: %s" % jobName )
-        _process_job( jobConfig, config.defaultDecoderSeq, config.defaultEncoderSeq,
+        _processJob( jobConfig, config.defaultDecoderSeq, config.defaultEncoderSeq,
                       cmdLineOptions.forceConfirm)
 
 
