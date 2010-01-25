@@ -9,7 +9,7 @@ import subprocess
 import ConfigParser
 import shutil
 import subprocess
-import qllib
+# import qllib
 
 _logger = logging.getLogger();
 
@@ -27,7 +27,7 @@ useful for automated runs.  By default, console input is required to
 confirm tasks before execution.  """ )
 
     return parser
-_
+
 def _determineConfigFileAbs():
     homePath = os.path.expanduser('~')
     return os.path.join(homePath, '.audio_batch/audio_batch.ini')
@@ -184,13 +184,14 @@ def _match_extensions( relativePaths, extensions ):
 
 
 def _copy_tags( sourcePathAbs, targetPathAbs ):
-    source = qllib.AudioFile( sourcePathAbs )
-    target = qllib.AudioFile( targetPathAbs )
+    _logger.info("tag copying is disabled!")
+#    source = qllib.AudioFile( sourcePathAbs )
+#    target = qllib.AudioFile( targetPathAbs )
 
-    for tag_name in source:
-        target[tag_name] = source[tag_name]
+#    for tag_name in source:
+#        target[tag_name] = source[tag_name]
 
-    target.write()
+#    target.write()
 
 
 class FileConverter:
