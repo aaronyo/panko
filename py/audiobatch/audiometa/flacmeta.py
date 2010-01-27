@@ -31,7 +31,11 @@ def extractCommonTags ( flacFileAbs ):
             _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
             continue
 
-        commonTags[commonTagName] = value
+        if commonTagName.endswith("total") or commonTagName.endswith("number"):
+            commonTags[commonTagName] = int(value[0])
+        else:
+            assert "fix handling of lists"
+            commonTags[commonTagName] = unicode(value[0])
 
     return commonTags
 
