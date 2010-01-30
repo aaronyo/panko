@@ -1,21 +1,32 @@
 from mutagen import mp3
 from mutagen import id3 
 import logging
-
+import StringIO
 
 _logger = logging.getLogger();
 
-_commonToMp3 = {
+_commonToId3 = {
     "album_title"  : id3.TALB,
     "album_artist" : id3.TPE2,
     "artist"       : id3.TPE1,
+    "composer"     : id3.TCOM,
     "date"         : id3.TDRC,
     "disc_number"  : None,  # requires custom handling
     "disc_total"   : None,  # requires custom handling
+    "genre"        : id3.TCON,
     "isrc"         : id3.TSRC,
     "title"        : id3.TIT2,
     "track_number" : None, # requires custom handling
     "track_total"  : None, # requires custom handling
+}
+
+_imageEncodingToMimeType = {
+    "jpeg" : "image/jpeg",
+    "png"  : "image/png"
+}
+
+_imageSubjectToId3Code = {
+    "album_cover" : 3
 }
 
 
@@ -50,12 +61,13 @@ def recognized( fileAbs ):
 
 class Mp3File:
     def __init__( self, mp3FileAbs ):
+        self.mp3FileAbs = mp3FileAbs
         self.mp3Obj = mp3.MP3( mp3FileAbs )
 
-    def clearAll ( self ):
+    def clearAll( self ):
         self.mp3Obj.delete()
         
-    def setTags ( self, tags ):
+    def setTags( self, tags ):
         # id3 combines the number and total into a single field of format: "number/total"
         discNumber = None
         discTotal = None
@@ -75,9 +87,10 @@ class Mp3File:
 
             else:
                 try:
-                    frameClass = _commonToMp3[ tagName ]
+                    frameClass = _commonToId3[ tagName ]
                 except KeyError:
-                    _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
+                    _logger.warn("Id3 mapping for common tag '%s' not found.  Will not be written to mp3: %s" \
+                                     % (flacTagName, self.mp3FileAbs) )
                     continue
 
                 frameObj = frameClass(encoding=3, text=value)
@@ -90,6 +103,30 @@ class Mp3File:
         trckFrame = _makeTrckFrame(trackNumber, trackTotal)
         if trckFrame != None:
             self.mp3Obj[ trckFrame.__class__.__name__ ] = trckFrame
+
+    def setImages(self, imageDict, encoding ):
+        mimeType = _imageEncodingToMimeType[encoding]
+        for subject, image in imageDict.items():
+            if _imageSubjectToId3Code.has_key( subject ):
+                id3PicCode = _imageSubjectToId3Code[ subject ]
+            else:
+                _logger.warn("Id3 mapping for image subject '%s' not found.  Will not be written to mp3: %s" \
+                                 % (flacTagName, self._mp3FileAbs) )
+                continue
+
+            #Image is a PIL Image object.  Get the binary data in encoding of our choice.
+            buf = StringIO.StringIO()
+            image.save( buf, format=encoding )
+            imageData = buf.getvalue()
+            buf.close()
+
+            apicFrame = id3.APIC( encoding = 3,
+                                  mime = 'image/jpeg',
+                                  type = id3PicCode,
+                                  desc = u'AlbumCover',
+                                  data = imageData )
+            self.mp3Obj.tags.add( apicFrame )
+            
 
     def save( self ):
         self.mp3Obj.save()

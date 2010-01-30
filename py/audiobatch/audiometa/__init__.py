@@ -3,13 +3,14 @@ import flacmeta
 import mp3meta
 from PIL import Image
 
-IMAGE_SUBJECT_ALBUM_COVER = 3
+IMAGE_SUBJECT__ALBUM_COVER = "album_cover"
 
 class AudioMeta:
 
     def __init__( self ):
         self.tags = {}
         self.images = {}
+        self.imageOutputEncoding="jpeg"
 
     def readFile( self, audioFileAbs, tags=True, images=False ):
         audioFileObj = AudioMeta._constructAudioFile( audioFileAbs )        
@@ -17,28 +18,33 @@ class AudioMeta:
         if tags:
             self.tags.update( audioFileObj.getTags() )
         if images:
-            raise error("Extracting images from an audio file is not yet supported")
+            raise Exception("Extracting images from an audio file is not yet supported")
             
-    def writeFile( self, audioFileAbs, clearFirst=False ):
+    def writeFile( self, audioFileAbs, clearFirst=False, tags=True, images=True ):
         audioFileObj = AudioMeta._constructAudioFile( audioFileAbs )
+
         if clearFirst:
             audioFileObj.clearAll()
-        audioFileObj.setTags( self.tags )
+        if tags:
+            audioFileObj.setTags( self.tags )
+        if images:
+            audioFileObj.setImages( self.images, self.imageOutputEncoding )
+
         audioFileObj.save()
 
-    def addImage( self, imageFileAbs, maxSideLength=None, encoding="jpg", imageSubject=None ):
-        filename = os.path.basename(picFileAbs)
-        if imageType == None:
+    def addImage( self, imageFileAbs, maxSideLength=None, subject=None ):
+        filename = os.path.basename( imageFileAbs )
+        if subject == None:
             if filename.startswith("cover"):
-                imageType = IMAGE_SUBECT_ALBUM_COVER
+                subject = IMAGE_SUBJECT__ALBUM_COVER
             else:
-                raise error( "Unable to determine image subject from filename: " % fileName )
+                raise Exception( "Unable to determine image subject from filename: %s" % imageFileAbs )
 
         image = Image.open( imageFileAbs )
         if maxSideLength != None:
             image = AudioMeta._conformSize( image, maxSideLength )
             
-        self.images[imageType] = image
+        self.images[subject] = image
 
         
     @staticmethod
@@ -48,7 +54,7 @@ class AudioMeta:
         elif mp3meta.recognized( audioFileAbs ):
             return mp3meta.Mp3File( audioFileAbs )
         else:
-            raise error( "could not recognize file type: %s" % audioFileAbs )
+            raise Exception( "could not recognize file type: %s" % audioFileAbs )
 
     @staticmethod
     def _conformSize( image, maxSideLength ):
@@ -56,11 +62,11 @@ class AudioMeta:
         if width >= height:
             if width > maxSideLength:
                 targetWidth = maxSideLength
-                targetHeight = int( (targetWidth / width) * height )
-        if height >= width:
+                targetHeight = int( (float(targetWidth) / width) * height )
+        else:
             if height > maxSideLength:
                 targetHeight = maxSideLength
-                targetWidth = int ( (targetHeight / height) * width )
+                targetWidth = int ( (float(targetHeight) / height) * width )
         
         if targetWidth != None:
             return image.resize( (targetWidth, targetHeight), Image.ANTIALIAS )

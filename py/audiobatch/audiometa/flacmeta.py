@@ -8,9 +8,11 @@ _flac2common = {
     "ALBUM"       : "album_title",
     "ALBUMARTIST" : "album_artist",
     "ARTIST"      : "artist",
+    "COMPOSER"    : "composer",
     "DATE"        : "date",
     "DISCNUMBER"  : "disc_number",
     "DISCTOTAL"   : "disc_total",
+    "GENRE"       : "genre",
     "ISRC"        : "isrc",
     "TITLE"       : "title",
     "TRACKNUMBER" : "track_number",
@@ -34,17 +36,13 @@ class FlacFile():
             try:
                 commonTagName = _flac2common[ flacTagName.upper() ]            
             except KeyError:
-                _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
+                _logger.warn("Common mapping for flac tag '%s' not found" % flacTagName)
                 continue
 
             if commonTagName.endswith("total") or commonTagName.endswith("number"):
                 commonTags[commonTagName] = int(value[0])
             else:
-                assert "fix handling of lists"
                 unicodeValues = [unicode(x) for x in value]
                 commonTags[commonTagName] = unicodeValues
 
         return commonTags
-
-
-        

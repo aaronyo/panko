@@ -9,6 +9,7 @@ import subprocess
 import ConfigParser
 import shutil
 import subprocess
+from audiometa import AudioMeta
 # import qllib
 
 _logger = logging.getLogger();
@@ -183,15 +184,20 @@ def _match_extensions( relativePaths, extensions ):
     return matches
 
 
-def _copy_tags( sourcePathAbs, targetPathAbs ):
-    _logger.info("tag copying is disabled!")
-#    source = qllib.AudioFile( sourcePathAbs )
-#    target = qllib.AudioFile( targetPathAbs )
+def _copy_meta( sourcePathAbs, targetPathAbs ):
+    meta = AudioMeta()
 
-#    for tag_name in source:
-#        target[tag_name] = source[tag_name]
+    # Get the textual tags from the source file
+    meta.readFile( sourcePathAbs )
 
-#    target.write()
+    # Get the cover image if we have one.
+    # Only supports externally saved "cover.jpg"
+    sourceDir = os.path.dirname( sourcePathAbs )
+    coverFileAbs = os.path.join( sourceDir, "cover.jpg" )
+    if os.path.isfile( coverFileAbs ):
+        meta.addImage( coverFileAbs )
+
+    meta.writeFile( targetPathAbs )
 
 
 class FileConverter:
@@ -241,7 +247,7 @@ class FileConverter:
         encodeProc = subprocess.Popen(encodeCmd, stdin=decodeProc.stdout)
         encodeProc.communicate();
 
-        _copy_tags( pathToConvertAbs, targetPathAbs )
+        _copy_meta( pathToConvertAbs, targetPathAbs )
 
         if ( tempSourcePathAbs != None ):
             os.remove( tempSourcePathAbs )
@@ -257,7 +263,7 @@ def _convert( sourceDir, relPaths, sourceExtensions, targetDirAbs, decodeStr, en
         _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
         sourcePathAbs = os.path.join( sourceDir, relPath )
         relPathMinusExtension = _strip_extension( relPath, sourceExtensions )
-        targetPathAbs = os.path.join( targetDir, relPathMinusExtension + "mp3" )
+        targetPathAbs = os.path.join( targetDirAbs, relPathMinusExtension + "mp3" )
         converter.convert( sourcePathAbs, targetPathAbs )
         
         
