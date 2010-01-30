@@ -1,5 +1,4 @@
 import mutagen.flac
-import audiometa
 import logging
 
 
@@ -18,31 +17,34 @@ _flac2common = {
     "TRACKTOTAL"  : "track_total"
     }
 
-
-def extractCommonTags ( flacFileAbs ):
-
-    flacObj = mutagen.flac.FLAC( flacFileAbs )
-    commonTags = {}
-
-    for flacTagName, value in flacObj.items():
-        try:
-            commonTagName = _flac2common[ flacTagName.upper() ]            
-        except KeyError:
-            _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
-            continue
-
-        if commonTagName.endswith("total") or commonTagName.endswith("number"):
-            commonTags[commonTagName] = int(value[0])
-        else:
-            assert "fix handling of lists"
-            commonTags[commonTagName] = unicode(value[0])
-
-    return commonTags
-
-
 def recognized( fileAbs ):
     fileObj = file(fileAbs)
     fileHeader = fileObj.read(128)
     matchScore = mutagen.flac.FLAC.score( fileAbs, fileObj, fileHeader )
     return matchScore > 0
+
+class FlacFile():
+    def __init__( self, flacFileAbs ):
+        self.flacObj = mutagen.flac.FLAC( flacFileAbs )
+
+    def getTags( self ):
+        commonTags = {}
+
+        for flacTagName, value in self.flacObj.items():
+            try:
+                commonTagName = _flac2common[ flacTagName.upper() ]            
+            except KeyError:
+                _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
+                continue
+
+            if commonTagName.endswith("total") or commonTagName.endswith("number"):
+                commonTags[commonTagName] = int(value[0])
+            else:
+                assert "fix handling of lists"
+                unicodeValues = [unicode(x) for x in value]
+                commonTags[commonTagName] = unicodeValues
+
+        return commonTags
+
+
         

@@ -1,6 +1,5 @@
 from mutagen import mp3
 from mutagen import id3 
-import audiometa
 import logging
 
 
@@ -49,49 +48,49 @@ def recognized( fileAbs ):
     return matchScore > 0
 
 
-def writeCommonTags ( commonTags, mp3FileAbs, clearFirst=False ):
+class Mp3File:
+    def __init__( self, mp3FileAbs ):
+        self.mp3Obj = mp3.MP3( mp3FileAbs )
 
-    if not recognized( mp3FileAbs ):
-        raise error("File not recognized as valid mp3: %s" % mp3FileAbs)
+    def clearAll ( self ):
+        self.mp3Obj.delete()
+        
+    def setTags ( self, tags ):
+        # id3 combines the number and total into a single field of format: "number/total"
+        discNumber = None
+        discTotal = None
+        trackNumber = None
+        trackTotal = None
 
-    mp3Obj = mp3.MP3( mp3FileAbs )
-    if clearFirst == True:
-        mp3Obj.delete()
+        for tagName, value in tags.items():
 
-    # id3 combines the number and total into a single field of format: "number/total"
-    discNumber = None
-    discTotal = None
-    trackNumber = None
-    trackTotal = None
+            if tagName == "disc_number":
+                discNumber = value
+            elif tagName == "disc_total":
+                discTotal = value
+            elif tagName == "track_number":
+                trackNumber = value
+            elif tagName == "track_total":
+                trackTotal = value
 
-    for tagName, value in commonTags.items():
+            else:
+                try:
+                    frameClass = _commonToMp3[ tagName ]
+                except KeyError:
+                    _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
+                    continue
 
-        if tagName == "disc_number":
-            discNumber = value
-        elif tagName == "disc_total":
-            discTotal = value
-        elif tagName == "track_number":
-            trackNumber = value
-        elif tagName == "track_total":
-            trackTotal = value
+                frameObj = frameClass(encoding=3, text=value)
+                self.mp3Obj[ frameClass.__name__ ] = frameObj
 
-        else:
-            try:
-                frameClass = _commonToMp3[ tagName ]
-            except KeyError:
-                _logger.info("Common mapping for flac tag '%s' not found" % flacTagName)
-                continue
+        tposFrame = _makeTposFrame(discNumber, discTotal)
+        if tposFrame != None:
+            self.mp3Obj[ tposFrame.__class__.__name__ ] = tposFrame
+            
+        trckFrame = _makeTrckFrame(trackNumber, trackTotal)
+        if trckFrame != None:
+            self.mp3Obj[ trckFrame.__class__.__name__ ] = trckFrame
 
-            frameObj = frameClass(encoding=3, text=value)
-            mp3Obj[ frameClass.__name__ ] = frameObj
-
-    tposFrame = _makeTposFrame(discNumber, discTotal)
-    if tposFrame != None:
-        mp3Obj[ tposFrame.__class__.__name__ ] = tposFrame
-
-    trckFrame = _makeTrckFrame(trackNumber, trackTotal)
-    if trckFrame != None:
-        mp3Obj[ trckFrame.__class__.__name__ ] = trckFrame
-
-    mp3Obj.save()
+    def save( self ):
+        self.mp3Obj.save()
 
