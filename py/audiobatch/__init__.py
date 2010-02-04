@@ -29,9 +29,11 @@ confirm tasks before execution.  """ )
 
     return parser
 
+
 def _determineConfigFileAbs():
     homePath = os.path.expanduser('~')
     return os.path.join(homePath, '.audio_batch/audio_batch.ini')
+
 
 def _parseConfig( confFileAbs ):
 
