@@ -32,7 +32,7 @@ confirm tasks before execution.  """ )
 
 def _determineConfigFileAbs():
     homePath = os.path.expanduser('~')
-    return os.path.join(homePath, '.audio_batch/audio_batch.ini')
+    return os.path.join(homePath, '.audiobatch/audiobatch.ini')
 
 
 def _parseConfig( confFileAbs ):
@@ -50,11 +50,17 @@ def _parseConfig( confFileAbs ):
         else:
             excludePatterns = set()
 
+        if confParser.has_option( jobName, "delete_matchless_target_files" ):
+            isDeleteEnabled = confParser.getboolean( jobName, "delete_matchless_target_files" )
+        else:
+            isDeleteEnabled = False
+
         jobConfig = _Config.JobConfig( confParser.get( jobName, "source_dir" ),
                                        extensionsToConvert,
                                        extensionsToCopy,
                                        excludePatterns,
-                                       confParser.get( jobName, "target_dir" ) )
+                                       confParser.get( jobName, "target_dir" ),
+                                       isDeleteEnabled )
         return jobConfig
 
     confParser = ConfigParser.ConfigParser()
@@ -219,9 +225,9 @@ class FileConverter:
     def convert( self, sourcePathAbs, targetPathAbs ):
 
         # Copy files to a known local location.  Decoding/Encoding processes may run
-        # slowly if operating against remote fles.
+        # slowly if operating against remote files.
         # TODO: Determine the file system device type and skip this step if the source and target
-        # locations are local.
+        # locations are local.  (maybe just remove this entirely)
         if ( self.localCopyFirst ):
             tempSourcePathAbs = localTempCopy( sourcePathAbs )
             pathToConvertAbs = tempSourcePathAbs
@@ -346,12 +352,13 @@ class _Config:
             strRep += "    extensions to convert: %s\n" % jobConfig.extensionsToConvert
             strRep += "    extensions to copy: %s\n" % jobConfig.extensionsToCopy
             strRep += "    excluded patterns: %s\n" % jobConfig.excludePatterns
-            strRep += "    target: %s" % jobConfig.targetDirAbs
+            strRep += "    target: %s\n" % jobConfig.targetDirAbs
+            strRep += "    delete matchless target files: %s" % str(jobConfig.isDeleteEnabled)
         return strRep
         
     class JobConfig:        
         def __init__( self, sourceDirAbs, extensionsToConvert, extensionsToCopy,
-                      excludePatterns, targetDirAbs ):
+                      excludePatterns, targetDirAbs, isDeleteEnabled ):
             self.sourceDirAbs = sourceDirAbs
             self.extensionsToConvert = extensionsToConvert
             if extensionsToCopy == None:
@@ -360,9 +367,13 @@ class _Config:
                 self.extensionsToCopy = extensionsToCopy
             self.excludePatterns = excludePatterns
             self.targetDirAbs = targetDirAbs
+            self.isDeleteEnabled = isDeleteEnabled
 
 
-def _isWorkToBeDone( copyList, convertList, deleteList ):
+def _isWorkToBeDone( copyList, convertList, deleteList, isDeleteEnabled ):
+    if not isDeleteEnabled:
+        deleteList = []
+
     if len(copyList) + len(convertList) + len(deleteList) > 0:
         return True
     else:
@@ -417,9 +428,10 @@ def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
     else:
         _logger.info( "No extensions chosen to be converted" )
 
-    _logger.info( "%4d matchless target files to be deleted" % len(targetDeletes) )
+    if jobConfig.isDeleteEnabled:
+        _logger.info( "%4d matchless target files to be deleted" % len(targetDeletes) )
 
-    if _isWorkToBeDone( relPathsToCopy, relPathsToConvert, targetDeletes ):
+    if _isWorkToBeDone( relPathsToCopy, relPathsToConvert, targetDeletes, jobConfig.isDeleteEnabled ):
         if _isContinueConfirmed( forceConfirm ):
             if copyEnabled:
                 _copy( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
@@ -428,7 +440,8 @@ def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
                 _convert( jobConfig.sourceDirAbs, relPathsToConvert, jobConfig.extensionsToConvert,
                           jobConfig.targetDirAbs, decodeSeq, encodeSeq )
 
-            _delete( jobConfig.targetDirAbs, targetDeletes )
+            if jobConfig.isDeleteEnabled:
+                _delete( jobConfig.targetDirAbs, targetDeletes )
     else:
         _logger.info( "There is nothing to do for this job." )
 
