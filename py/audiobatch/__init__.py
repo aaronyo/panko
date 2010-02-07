@@ -389,19 +389,16 @@ def _isContinueConfirmed( forceConfirm ):
 
 def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
-    sourcePaths = _allFilePaths( jobConfig.sourceDirAbs,
-                                   allExtensions,
-                                   jobConfig.excludePatterns )
+    sourcePaths = _allFilePaths( jobConfig.sourceDirAbs, allExtensions, jobConfig.excludePatterns )
     sourcePaths = sorted( sourcePaths )
 
     targetDirExtensions = jobConfig.extensionsToCopy.union(['mp3'])
-    targetPaths = _allFilePaths( jobConfig.targetDirAbs,
-                                   targetDirExtensions,
-                                   jobConfig.excludePatterns )
+    targetPaths = _allFilePaths( jobConfig.targetDirAbs, targetDirExtensions, jobConfig.excludePatterns )
     targetPaths = sorted( targetPaths )
 
     sourceAdds, sourceReplacements, targetDeletes = \
-        _determine_updates( sourcePaths, targetPaths, jobConfig.sourceDirAbs, jobConfig.targetDirAbs,
+        _determine_updates( sourcePaths, targetPaths,
+                            jobConfig.sourceDirAbs, jobConfig.targetDirAbs,
                             allExtensions, targetDirExtensions )
 
     _logger.info( "%4d sources not found in target directory" % len(sourceAdds) )
