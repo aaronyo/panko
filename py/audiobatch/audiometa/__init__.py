@@ -1,6 +1,7 @@
 import os.path
 import flacmeta
 import mp3meta
+import m4ameta
 from PIL import Image
 
 IMAGE_SUBJECT__ALBUM_COVER = "album_cover"
@@ -53,8 +54,10 @@ class AudioMeta:
             return flacmeta.FlacFile( audioFileAbs )
         elif mp3meta.recognized( audioFileAbs ):
             return mp3meta.Mp3File( audioFileAbs )
+        elif m4ameta.recognized( audioFileAbs ):
+            return m4ameta.M4aFile( audioFileAbs )
         else:
-            raise Exception( "could not recognize file type: %s" % audioFileAbs )
+            raise Exception( "File type not recognized for file: %s" % audioFileAbs )
 
     @staticmethod
     def _conformSize( image, maxSideLength ):
