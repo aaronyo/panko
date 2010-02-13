@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-
-import audiobatch
-
-if __name__ == "__main__":
-   audiobatch.main(sys.argv)
