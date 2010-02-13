@@ -2,10 +2,10 @@ import os.path
 from audiobatch.meta.generic import TrackMeta
 
 class BasicMetaConverter:
-    def __init__():
+    def __init__( self ):
         pass
 
-    def copyMeta( sourcePathAbs, targetPathAbs ):
+    def convert( self, sourcePathAbs, targetPathAbs ):
         trackMeta = TrackMeta()
 
         # Get the textual tags from the source file

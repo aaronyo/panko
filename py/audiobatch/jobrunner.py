@@ -172,8 +172,8 @@ def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
     targetPaths = sorted( targetPaths )
 
     sourceAdds, sourceReplacements, targetDeletes = \
-        actions.determineConversionDiff( sourcePaths, targetPaths,
-                                         jobConfig.sourceDirAbs, jobConfig.targetDirAbs )
+        actions.determineExtensionIgnorantDiff( sourcePaths, targetPaths,
+                                                jobConfig.sourceDirAbs, jobConfig.targetDirAbs )
 
     _logger.info( "%4d sources not found in target directory" % len(sourceAdds) )
     _logger.info( "%4d sources changed since corresponding target created" % len(sourceReplacements) )
@@ -209,9 +209,15 @@ def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
 
             if conversionEnabled:
                 streamConverter = stream.convert.ShellStreamConverter( decodeSeq, encodeSeq )
-                metaConverter = meta.convert.BasicConverter()
-                actions.convertPaths( jobConfig.sourceDirAbs, relPathsToConvert,
-                                      jobConfig.targetDirAbs, streamConverter, metaConverter)
+                metaConverter = meta.convert.BasicMetaConverter()
+                streamErrors, metaErrors = actions.convertPaths( jobConfig.sourceDirAbs, relPathsToConvert,
+                                                                 jobConfig.targetDirAbs, streamConverter,
+                                                                 metaConverter)
+                allErrors = {}
+                allErrors.update( streamErrors )
+                allErrors.update( metaErrors )
+                for pathAbs, error in allErrors.items():
+                    _logger.error( "Problem processing %s: %s" % (pathAbs, error) );
 
             if jobConfig.isDeleteEnabled:
                 actions.deletePaths( jobConfig.targetDirAbs, targetDeletes )

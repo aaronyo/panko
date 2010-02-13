@@ -54,7 +54,7 @@ class TrackMeta:
         if meta.flac.recognized( audioFileAbs ):
             return meta.flac.FlacFile( audioFileAbs )
         elif meta.mp3.recognized( audioFileAbs ):
-            return metea.mp3.Mp3File( audioFileAbs )
+            return meta.mp3.Mp3File( audioFileAbs )
         elif meta.m4a.recognized( audioFileAbs ):
             return meta.m4a.M4aFile( audioFileAbs )
         else:

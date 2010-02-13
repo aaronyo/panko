@@ -60,15 +60,25 @@ def convertPaths( sourceDir, relPaths, targetDirAbs, streamConverter, metaConver
     streamConverter
     totalCopies = len( relPaths )
     i = 0
+    streamConversionErrors = {}
+    metaConversionErrors = {}
     for relPath in relPaths:
         i += 1
         _logger.debug( "Converting %d of %d: %s" % (i, totalCopies, relPath) )
         sourcePathAbs = os.path.join( sourceDir, relPath )
         relPathMinusExtension = _stripExtension( relPath )
         targetPathAbs = os.path.join( targetDirAbs, relPathMinusExtension + os.extsep + "mp3" )
-        streamConverter.convert( sourcePathAbs, targetPathAbs )
-        metaConverter.convert( sourcePathAbs, targetPathAbs )
-        
+        try:
+            streamConverter.convert( sourcePathAbs, targetPathAbs )
+        except Exception as e:
+            streamConversionErrors[ sourcePathAbs ] = e
+        try:
+            metaConverter.convert( sourcePathAbs, targetPathAbs )
+        except Exception as e:
+            metaConversionErrors[ sourcePathAbs ] = e
+
+    return streamConversionErrors, metaConversionErrors
+
 def copyPaths( sourceDirAbs, relPaths, targetDirAbs ):
     totalCopies = len( relPaths )
     i = 0
@@ -101,7 +111,7 @@ def deletePaths( targetDirAbs, relativePaths ):
 # by more than just extension).  If this is not the case for some title, the function
 # will ensure that at least one copy of the title remains or is scheduled for the
 # targets.
-def determineConversionDiff( sources, targets, sourceDirAbs, targetDirAbs ):
+def determineExtensionIgnorantDiff( sources, targets, sourceDirAbs, targetDirAbs ):
 
     def _hasBeenUpdated( sourcePath, targetPath, sourceDirAbs, targetDirAbs ):
         sourceModTime = os.stat( os.path.join(sourceDirAbs, sourcePath) )[stat.ST_MTIME]
@@ -150,7 +160,7 @@ def determineConversionDiff( sources, targets, sourceDirAbs, targetDirAbs ):
                 # Indicate the match so we don't delete the target on the next loop
                 targetMatched = True
                 if _hasBeenUpdated( sortedSources[sIdx], sortedTargets[tIdx], sourceDirAbs, targetDirAbs ):
-                    updtedSources.append( sortedSources[sIdx] )
+                    updatedSources.append( sortedSources[sIdx] )
                 sIdx += 1
             elif comparison < 0:
                 assert(not targetMatched)
