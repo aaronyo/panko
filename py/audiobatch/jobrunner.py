@@ -128,7 +128,7 @@ class _Config:
         strRep += 'default decoder sequence: %s\n' % self.defaultDecoderSeq
         strRep += 'default encoder sequence: %s\n' % self.defaultEncoderSeq
         for ext, seq in self.decodersByExtension.items():            
-            strRep += '%s decoder sequence: %s\n' % (ext, self.defaultEncoderSeq)
+            strRep += '%s decoder sequence: %s\n' % (ext, seq)
         strRep += 'jobs:\n'
         for jobName, jobConfig in self.jobConfigs.items():
             strRep += "  %s:\n" % jobName
