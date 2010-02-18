@@ -25,7 +25,7 @@ def matchExtensions( relativePaths, extensions ):
     return matches
 
 
-def findPaths(baseDirAbs, extensions=None, excludePatterns=None):
+def findPaths(baseDirAbs, extensions=None, excludePatterns=None, returnRelPath=True):
 
     def _shouldExclude( path, excludePatterns ):
         if excludePatterns == None or len(excludePatterns) == 0:
@@ -50,7 +50,10 @@ def findPaths(baseDirAbs, extensions=None, excludePatterns=None):
                 if fnmatch.fnmatch(name, pattern):
                     absolutePath = os.path.join(path, name)
                     if not _shouldExclude( absolutePath, excludePatterns ):
-                        paths.add( os.path.relpath( absolutePath, baseDirAbs ) )
+                        if returnRelPath:
+                            paths.add( os.path.relpath( absolutePath, baseDirAbs ) )
+                        else:
+                            paths.add( absolutePath )
                     break
 
     return paths
@@ -174,4 +177,6 @@ def determineExtensionIgnorantDiff( sources, targets, sourceDirAbs, targetDirAbs
     
     return newSources, updatedSources, matchlessTargets
 
-
+def updateMeta( trackMeta, pathsAbs ):
+    for pathAbs in pathsAbs:
+        trackMeta.writeFile( pathAbs )

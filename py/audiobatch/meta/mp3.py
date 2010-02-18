@@ -67,7 +67,7 @@ class Mp3File:
     def clearAll( self ):
         self.mp3Obj.delete()
         
-    def setTags( self, tags ):
+    def addTags( self, tags ):
         # id3 combines the number and total into a single field of format: "number/total"
         discNumber = None
         discTotal = None
@@ -90,7 +90,7 @@ class Mp3File:
                     frameClass = _commonToId3[ tagName ]
                 except KeyError:
                     _logger.warn("Id3 mapping for common tag '%s' not found.  Will not be written to mp3: %s" \
-                                     % (flacTagName, self.mp3FileAbs) )
+                                     % (tagName, self.mp3FileAbs) )
                     continue
 
                 frameObj = frameClass(encoding=3, text=value)
@@ -104,7 +104,7 @@ class Mp3File:
         if trckFrame != None:
             self.mp3Obj[ trckFrame.__class__.__name__ ] = trckFrame
 
-    def setImages(self, imageDict, encoding ):
+    def addImages(self, imageDict, encoding ):
         mimeType = _imageEncodingToMimeType[encoding]
         for subject, image in imageDict.items():
             if _imageSubjectToId3Code.has_key( subject ):

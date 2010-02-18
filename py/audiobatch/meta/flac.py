@@ -19,6 +19,8 @@ _flac2common = {
     "TRACKTOTAL"  : "track_total"
     }
 
+_common2flac = dict((value,key) for key, value in _flac2common.iteritems())
+
 def recognized( fileAbs ):
     fileObj = file(fileAbs)
     fileHeader = fileObj.read(128)
@@ -28,6 +30,7 @@ def recognized( fileAbs ):
 class FlacFile():
     def __init__( self, flacFileAbs ):
         self.flacObj = mutagen.flac.FLAC( flacFileAbs )
+        self.flacFileAbs = flacFileAbs
 
     def getTags( self ):
         commonTags = {}
@@ -46,3 +49,18 @@ class FlacFile():
                 commonTags[commonTagName] = unicodeValues
 
         return commonTags
+
+    def addTags( self, tags ):
+        for tagName, tagValue in tags.items():
+
+            try:
+                flacTagName =  _common2flac[tagName]
+            except KeyError:
+                _logger.warn("Flac mapping for common tag '%s' not found.  Will not be written to flac: %s" \
+                                     % (flacTagName, self.flacFileAbs) )
+                continue
+
+            self.flacObj[ flacTagName ] = tagValue
+
+    def save( self ):
+        self.flacObj.save()

@@ -6,9 +6,14 @@ _logger = logging.getLogger();
 
 
 class ShellStreamConverter:
-    def __init__( self, decodeCmdTemplate, encodeCmdTemplate, localCopyFirst = False ):
+    def __init__( self, decodeCmdTemplate, encodeCmdTemplate, decodersByExtension, localCopyFirst = False ):
+
+        # Defaults to be used if a specific decoder is not specified for a given extension
         self.decodeCmdTemplate = decodeCmdTemplate
         self.encodeCmdTemplate = encodeCmdTemplate
+
+        self.decodeCmdTemplateByExtension = decodersByExtension
+
         self.localCopyFirst = localCopyFirst
 
     @staticmethod
@@ -31,22 +36,39 @@ class ShellStreamConverter:
         else:
             tempSourcePathAbs = None
             pathToConvertAbs = sourcePathAbs
-            
-        decodeCmdSeq = eval( self.decodeCmdTemplate.format(inFile="pathToConvertAbs") )
+        
+        root, ext = os.path.splitext( pathToConvertAbs )
+        ext = ext[1:] # drop the '.'
+        if ext in self.decodeCmdTemplateByExtension:
+            decodeCmdTemplate = self.decodeCmdTemplateByExtension[ ext ]
+        else:
+            decodeCmdTemplate = self.decodeCmdTemplate
+
+        decodeCmdSeq = eval( decodeCmdTemplate.format(inFile="pathToConvertAbs") )
         encodeCmdSeq = eval( self.encodeCmdTemplate.format(outFile="targetPathAbs") )
 
-        # Use sequences for the commands so that subprocess module gets to worry about special chars
-        # in files (rather than my code)
-
-        _logger.debug( " ".join(decodeCmdSeq) + " | " + " ".join(encodeCmdSeq) )
+        # Use sequences for the commands so that subprocess module handles special chars
+        # in files
 
         targetLeafDir = os.path.dirname( targetPathAbs )
         if not os.path.isdir( targetLeafDir ):
             os.makedirs( targetLeafDir )
 
-        decodeProc = subprocess.Popen(decodeCmdSeq, stdout=subprocess.PIPE)
-        encodeProc = subprocess.Popen(encodeCmdSeq, stdin=decodeProc.stdout)
-        encodeProc.communicate();
+        _logger.debug( "executing: " + " ".join(decodeCmdSeq) )
+        decodeProc = subprocess.call(decodeCmdSeq)
+
+        _logger.debug( "executing: " + " ".join(encodeCmdSeq) )
+        encodeProc = subprocess.call(encodeCmdSeq)
+
+#        _logger.debug( " ".join(decodeCmdSeq) + " | " + " ".join(encodeCmdSeq) )
+#
+#        targetLeafDir = os.path.dirname( targetPathAbs )
+#        if not os.path.isdir( targetLeafDir ):
+#            os.makedirs( targetLeafDir )
+#
+#        decodeProc = subprocess.Popen(decodeCmdSeq, stdout=subprocess.PIPE)
+#        encodeProc = subprocess.Popen(encodeCmdSeq, stdin=decodeProc.stdout)
+#        encodeProc.communicate();
 
         if ( tempSourcePathAbs != None ):
             os.remove( tempSourcePathAbs )

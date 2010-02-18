@@ -27,12 +27,15 @@ class TrackMeta:
 
         if clearFirst:
             audioFileObj.clearAll()
-        if tags:
-            audioFileObj.setTags( self.tags )
-        if images:
-            audioFileObj.setImages( self.images, self.imageOutputEncoding )
+        if tags and len( self.tags ) > 0:
+            audioFileObj.addTags( self.tags )
+        if images and len( self.images ) > 0:
+            audioFileObj.addImages( self.images, self.imageOutputEncoding )
 
         audioFileObj.save()
+
+    def addTag( self, tagName, tagValue ):
+        self.tags[ tagName ] = tagValue
 
     def addImage( self, imageFileAbs, maxSideLength=None, subject=None ):
         filename = os.path.basename( imageFileAbs )

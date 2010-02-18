@@ -65,7 +65,13 @@ def _parseConfig( confFileAbs ):
     logFileAbs = confParser.get( "system", "log_file" )
     defaultDecoderSeq = confParser.get( "default_decoder", "command_seq" )
     defaultEncoderSeq = confParser.get( "default_encoder", "command_seq" )
-    config = _Config( logFileAbs, defaultDecoderSeq, defaultEncoderSeq )
+    decodersByExtension = {}
+    if confParser.has_section( "decoders_by_extension" ):
+        for extension, cmdSeq in confParser.items("decoders_by_extension"):
+            decodersByExtension[ extension ] = cmdSeq
+
+    config = _Config( logFileAbs, defaultDecoderSeq, defaultEncoderSeq, decodersByExtension )
+
 
     jobNames = confParser.options( "jobs" )
     for jobName in jobNames:
@@ -110,16 +116,19 @@ def _setupLogging( logFileAbs, isVerbose ):
 
 
 class _Config:
-    def __init__( self, logFileAbs, defaultDecoder, defaultEncoder ):
+    def __init__( self, logFileAbs, defaultDecoder, defaultEncoder, decodersByExtension ):
         self.jobConfigs = {}
         self.logFileAbs = logFileAbs
         self.defaultDecoderSeq = defaultDecoder
         self.defaultEncoderSeq = defaultEncoder
+        self.decodersByExtension = decodersByExtension
 
     def __str__( self ):
         strRep = 'log file: %s\n' % self.logFileAbs
         strRep += 'default decoder sequence: %s\n' % self.defaultDecoderSeq
         strRep += 'default encoder sequence: %s\n' % self.defaultEncoderSeq
+        for ext, seq in self.decodersByExtension.items():            
+            strRep += '%s decoder sequence: %s\n' % (ext, self.defaultEncoderSeq)
         strRep += 'jobs:\n'
         for jobName, jobConfig in self.jobConfigs.items():
             strRep += "  %s:\n" % jobName
@@ -162,7 +171,7 @@ def _isContinueConfirmed( forceConfirm ):
         isConfirmed = raw_input( "['y' to continue] > " ) == 'y'
         return isConfirmed
 
-def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
+def _processJob( jobConfig, defaultDecodeSeq, defaultEncodeSeq, decodersByExtension, forceConfirm ):
     allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
     sourcePaths = actions.findPaths( jobConfig.sourceDirAbs, allExtensions, jobConfig.excludePatterns )
     sourcePaths = sorted( sourcePaths )
@@ -208,16 +217,17 @@ def _processJob( jobConfig, decodeSeq, encodeSeq, forceConfirm ):
                 actions.copyPaths( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
 
             if conversionEnabled:
-                streamConverter = stream.convert.ShellStreamConverter( decodeSeq, encodeSeq )
+                streamConverter = stream.convert.ShellStreamConverter( defaultDecodeSeq,
+                                                                       defaultEncodeSeq,
+                                                                       decodersByExtension )
                 metaConverter = meta.convert.BasicMetaConverter()
                 streamErrors, metaErrors = actions.convertPaths( jobConfig.sourceDirAbs, relPathsToConvert,
                                                                  jobConfig.targetDirAbs, streamConverter,
                                                                  metaConverter)
-                allErrors = {}
-                allErrors.update( streamErrors )
-                allErrors.update( metaErrors )
-                for pathAbs, error in allErrors.items():
-                    _logger.error( "Problem processing %s: %s" % (pathAbs, error) );
+                for pathAbs, se in streamErrors.items():
+                    _logger.error( "Problem converting stream for %s: %s" % (pathAbs, se) );
+                for pathAbs, me in metaErrors.items():
+                    _logger.error( "Problem converting metadata for %s: %s" % (pathAbs, me) );
 
             if jobConfig.isDeleteEnabled:
                 actions.deletePaths( jobConfig.targetDirAbs, targetDeletes )
@@ -236,8 +246,11 @@ def main(args):
 
     for jobName, jobConfig in config.jobConfigs.items():
         _logger.info( "Processing job: %s" % jobName )
-        _processJob( jobConfig, config.defaultDecoderSeq, config.defaultEncoderSeq,
-                      cmdLineOptions.forceConfirm)
+        _processJob( jobConfig,
+                     config.defaultDecoderSeq,
+                     config.defaultEncoderSeq,
+                     config.decodersByExtension,
+                     cmdLineOptions.forceConfirm)
 
 
 if __name__ == "__main__":
