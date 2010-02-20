@@ -96,7 +96,6 @@ def copyPaths( sourceDirAbs, relPaths, targetDirAbs ):
             os.makedirs( targetLeafDir )
                     
         shutil.copyfile( sourcePathAbs, targetPathAbs) 
-        break;
 
 def deletePaths( targetDirAbs, relativePaths ):
     for relPath in relativePaths:
