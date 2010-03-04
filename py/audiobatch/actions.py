@@ -6,6 +6,7 @@ import logging
 import ConfigParser
 import shutil
 import logging
+import meta.generic
 
 _logger = logging.getLogger();
 
@@ -24,6 +25,36 @@ def matchExtensions( relativePaths, extensions ):
                 matches.append( relPath )
     return matches
 
+
+def filterPaths( relativePaths, baseDirAbs, passConditionTemplate ):
+    checkExt = False
+    checkBitrate = False
+    formatKwargs = {}
+    if passConditionTemplate.find( "{extension}" ) != -1:
+        checkExt = True
+        formatKwargs["extension"] = "ext"
+    if passConditionTemplate.find( "{bitrate}" ) != -1:
+        checkBitrate = True
+        formatKwargs["bitrate"] = "bitrate"
+
+    passCondition = passConditionTemplate.format( **formatKwargs )
+
+    passes = []
+    rejects = []
+
+    for relPath in relativePaths:
+        if checkExt:
+            ext = _stripExtension( relPath )
+        if checkBitrate:
+            pathAbs = os.path.join( baseDirAbs, relPath )
+            audioFile = meta.generic.constructAudioFile( pathAbs )
+            bitrate = int( audioFile.bitrate / 1000 )
+        if eval ( passCondition ):
+            passes.append( relPath )
+        else:
+            rejects.append( relPath )
+        
+    return passes, rejects
 
 def findPaths(baseDirAbs, extensions=None, excludePatterns=None, returnRelPath=True):
 
@@ -73,14 +104,18 @@ def convertPaths( sourceDir, relPaths, targetDirAbs, streamConverter, metaConver
         targetPathAbs = os.path.join( targetDirAbs, relPathMinusExtension + os.extsep + "mp3" )
         try:
             streamConverter.convert( sourcePathAbs, targetPathAbs )
+            streamConversionError = None
         except Exception as e:
-            streamConversionErrors[ sourcePathAbs ] = e
+            streamConversionError = e
         try:
             metaConverter.convert( sourcePathAbs, targetPathAbs )
+            metaConversionError = None
         except Exception as e:
-            metaConversionErrors[ sourcePathAbs ] = e
+            metaConversionError = e
 
-    return streamConversionErrors, metaConversionErrors
+        # We'll yield errors, instead of returning them all at the end, so that the caller
+        # has control to stop processing due to errors
+        yield streamConversionError, metaConversionError
 
 def copyPaths( sourceDirAbs, relPaths, targetDirAbs ):
     totalCopies = len( relPaths )
@@ -113,7 +148,7 @@ def deletePaths( targetDirAbs, relativePaths ):
 # by more than just extension).  If this is not the case for some title, the function
 # will ensure that at least one copy of the title remains or is scheduled for the
 # targets.
-def determineExtensionIgnorantDiff( sources, targets, sourceDirAbs, targetDirAbs ):
+def extensionIgnorantDiff( sources, targets, sourceDirAbs, targetDirAbs ):
 
     def _hasBeenUpdated( sourcePath, targetPath, sourceDirAbs, targetDirAbs ):
         sourceModTime = os.stat( os.path.join(sourceDirAbs, sourcePath) )[stat.ST_MTIME]

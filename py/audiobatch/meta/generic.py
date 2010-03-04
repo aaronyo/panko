@@ -7,15 +7,28 @@ from PIL import Image
 
 IMAGE_SUBJECT__ALBUM_COVER = "album_cover"
 
+
+def constructAudioFile( path ):
+    if meta.flac.recognized( path ):
+        return meta.flac.FlacFile( path )
+    elif meta.mp3.recognized( path ):
+        return meta.mp3.Mp3File( path )
+    elif meta.m4a.recognized( path ):
+        return meta.m4a.M4aFile( path )
+    else:
+        raise Exception( "File type not recognized for file: %s" % audioFileAbs )
+
+
 class TrackMeta:
 
     def __init__( self ):
         self.tags = {}
         self.images = {}
         self.imageOutputEncoding="jpeg"
+        self.bitrate = None
 
     def readFile( self, audioFileAbs, tags=True, images=False ):
-        audioFileObj = TrackMeta._constructAudioFile( audioFileAbs )        
+        audioFileObj = constructAudioFile( audioFileAbs )
 
         if tags:
             self.tags.update( audioFileObj.getTags() )
@@ -23,7 +36,7 @@ class TrackMeta:
             raise Exception("Extracting images from an audio file is not yet supported")
             
     def writeFile( self, audioFileAbs, clearFirst=False, tags=True, images=True ):
-        audioFileObj = TrackMeta._constructAudioFile( audioFileAbs )
+        audioFileObj = constructAudioFile( audioFileAbs )
 
         if clearFirst:
             audioFileObj.clearAll()
@@ -50,19 +63,7 @@ class TrackMeta:
             image = TrackMeta._conformSize( image, maxSideLength )
             
         self.images[subject] = image
-
         
-    @staticmethod
-    def _constructAudioFile( audioFileAbs ):
-        if meta.flac.recognized( audioFileAbs ):
-            return meta.flac.FlacFile( audioFileAbs )
-        elif meta.mp3.recognized( audioFileAbs ):
-            return meta.mp3.Mp3File( audioFileAbs )
-        elif meta.m4a.recognized( audioFileAbs ):
-            return meta.m4a.M4aFile( audioFileAbs )
-        else:
-            raise Exception( "File type not recognized for file: %s" % audioFileAbs )
-
     @staticmethod
     def _conformSize( image, maxSideLength ):
         width, height = image.size

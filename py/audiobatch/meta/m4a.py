@@ -40,6 +40,10 @@ class M4aFile():
     def __init__( self, m4aFileAbs ):
         self.m4aObj = mutagen.mp4.MP4( m4aFileAbs )
 
+    @property
+    def bitrate(self):
+        return self.m4aObj.info.bitrate
+
     def getTags( self ):
         commonTags = {}
         

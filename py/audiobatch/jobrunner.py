@@ -10,6 +10,8 @@ from audiobatch import meta, stream, actions
 
 _logger = logging.getLogger();
 
+_LIST_SEP = ';'
+
 def _buildCmdLineParser():
     parser = optparse.OptionParser()
 
@@ -34,15 +36,35 @@ def _determineConfigFileAbs():
 def _parseConfig( confFileAbs ):
 
     def _parseJob( confParser, jobName ):
-        extensionsToConvert = set( confParser.get( jobName, "extensions_to_convert" ).split( ';' ) )
 
-        if confParser.has_option( jobName, "extensions_to_copy" ):
-            extensionsToCopy = set( confParser.get( jobName, "extensions_to_copy" ).split( ';' ) )
+        #
+        # required config params
+        #
+
+        sourceDir = confParser.get( jobName, "source_dir" )
+        targetDir = confParser.get( jobName, "target_dir" )
+        audioExtensions = confParser.get( jobName, "audio_extensions" ).split( _LIST_SEP )
+        # strip whitespace and remove duplicates
+        audioExtensions = set( [ x.strip() for x in audioExtensions ] )
+
+        #
+        # optional config params -- checked for existence
+        #
+
+        if confParser.has_option( jobName, "convert_condition" ):
+            convertCondition = confParser.get( jobName, "convert_condition" )
         else:
-            extensionsToCopy = set()
+            convertCondition = None
+
+        if confParser.has_option( jobName, "copy_condition" ):
+            copyCondition = confParser.get( jobName, "copy_condition" )
+        else:
+            copyCondition = None
 
         if confParser.has_option( jobName, "exclude_patterns" ):
-            excludePatterns = set( confParser.get( jobName, "exclude_patterns" ).split( ';' ) )
+            excludePatterns = confParser.get( jobName, "exclude_patterns" ).split( _LIST_SEP )
+            # strip whitespace and remove duplicates
+            excludePatterns = set( [ x.strip() for x in excludePatterns ] )
         else:
             excludePatterns = set()
 
@@ -51,11 +73,12 @@ def _parseConfig( confFileAbs ):
         else:
             isDeleteEnabled = False
 
-        jobConfig = _Config.JobConfig( confParser.get( jobName, "source_dir" ),
-                                       extensionsToConvert,
-                                       extensionsToCopy,
+        jobConfig = _Config.JobConfig( sourceDir,
+                                       targetDir,
+                                       audioExtensions,
                                        excludePatterns,
-                                       confParser.get( jobName, "target_dir" ),
+                                       convertCondition,
+                                       copyCondition,
                                        isDeleteEnabled )
         return jobConfig
 
@@ -133,24 +156,23 @@ class _Config:
         for jobName, jobConfig in self.jobConfigs.items():
             strRep += "  %s:\n" % jobName
             strRep += "    source: %s\n" % jobConfig.sourceDirAbs
-            strRep += "    extensions to convert: %s\n" % jobConfig.extensionsToConvert
-            strRep += "    extensions to copy: %s\n" % jobConfig.extensionsToCopy
-            strRep += "    excluded patterns: %s\n" % jobConfig.excludePatterns
             strRep += "    target: %s\n" % jobConfig.targetDirAbs
+            strRep += "    audio extensions: %s\n" % jobConfig.audioExtensions
+            strRep += "    excluded patterns: %s\n" % jobConfig.excludePatterns
+            strRep += "    convert condition: %s\n" % jobConfig.convertCondition
+            strRep += "    copy condition: %s\n" % jobConfig.copyCondition
             strRep += "    delete matchless target files: %s" % str(jobConfig.isDeleteEnabled)
         return strRep
         
     class JobConfig:        
-        def __init__( self, sourceDirAbs, extensionsToConvert, extensionsToCopy,
-                      excludePatterns, targetDirAbs, isDeleteEnabled ):
+        def __init__( self, sourceDirAbs, targetDirAbs, audioExtensions, excludePatterns, convertCondition,
+                      copyCondition, isDeleteEnabled ):
             self.sourceDirAbs = sourceDirAbs
-            self.extensionsToConvert = extensionsToConvert
-            if extensionsToCopy == None:
-                self.extensionsToCopy = []
-            else:
-                self.extensionsToCopy = extensionsToCopy
-            self.excludePatterns = excludePatterns
             self.targetDirAbs = targetDirAbs
+            self.audioExtensions = audioExtensions
+            self.excludePatterns = excludePatterns
+            self.convertCondition = convertCondition
+            self.copyCondition = copyCondition
             self.isDeleteEnabled = isDeleteEnabled
 
 
@@ -172,65 +194,71 @@ def _isContinueConfirmed( forceConfirm ):
         return isConfirmed
 
 def _processJob( jobConfig, defaultDecodeSeq, defaultEncodeSeq, decodersByExtension, forceConfirm ):
-    allExtensions = jobConfig.extensionsToConvert.union( jobConfig.extensionsToCopy )
-    sourcePaths = actions.findPaths( jobConfig.sourceDirAbs, allExtensions, jobConfig.excludePatterns )
+    _logger.info( "indexing source paths..." )
+    sourcePaths = actions.findPaths( jobConfig.sourceDirAbs, jobConfig.audioExtensions, jobConfig.excludePatterns )
     sourcePaths = sorted( sourcePaths )
 
-    targetDirExtensions = jobConfig.extensionsToCopy.union(['mp3'])
-    targetPaths = actions.findPaths( jobConfig.targetDirAbs, targetDirExtensions, jobConfig.excludePatterns )
+    _logger.info( "indexing target paths..." )
+    targetPaths = actions.findPaths( jobConfig.targetDirAbs, jobConfig.audioExtensions, jobConfig.excludePatterns )
     targetPaths = sorted( targetPaths )
 
-    sourceAdds, sourceReplacements, targetDeletes = \
-        actions.determineExtensionIgnorantDiff( sourcePaths, targetPaths,
-                                                jobConfig.sourceDirAbs, jobConfig.targetDirAbs )
+    _logger.info( "diffing source and target paths..." )
+    newSources, updatedSources, matchlessTargets = \
+        actions.extensionIgnorantDiff( sourcePaths, targetPaths,
+                                       jobConfig.sourceDirAbs, jobConfig.targetDirAbs )
 
-    _logger.info( "%4d sources not found in target directory" % len(sourceAdds) )
-    _logger.info( "%4d sources changed since corresponding target created" % len(sourceReplacements) )
+    _logger.info( "%4d sources not found in target directory" % len( newSources ) )
+    _logger.info( "%4d sources changed since corresponding target created" % len( updatedSources ) )
 
     # We process adds and replaces the same way -- replaces just end up leading to overwriting an 
     # existing file
     sourceChanges = []
-    sourceChanges.extend(sourceAdds)
-    sourceChanges.extend(sourceReplacements)
+    sourceChanges.extend( newSources )
+    sourceChanges.extend( updatedSources )
 
-    copyEnabled = len( jobConfig.extensionsToCopy ) > 0
-    conversionEnabled = len( jobConfig.extensionsToConvert ) > 0
-
-    if copyEnabled:
-        relPathsToCopy = actions.matchExtensions( sourceChanges, jobConfig.extensionsToCopy )
-        _logger.info( "%4d copies to be done" % len(relPathsToCopy) )
-    else: 
-        _logger.info( "No extensions chosen to be copied" )
-       
-    if conversionEnabled:
-        relPathsToConvert = actions.matchExtensions( sourceChanges, jobConfig.extensionsToConvert )
-        _logger.info( "%4d conversions to be done" % len(relPathsToConvert) )
+    if jobConfig.convertCondition != None:
+        conversionEnabled = True
+        pathsToConvert, pathsRemaining = \
+            actions.filterPaths( sourceChanges, jobConfig.sourceDirAbs, jobConfig.convertCondition )
+        _logger.info( "%4d conversions to be done" % len( pathsToConvert ) )
     else:
-        _logger.info( "No extensions chosen to be converted" )
+        conversionEnabled = False
+        _logger.info( "Converting disabled; no condition set for selecting files to be converted" )
 
+    if jobConfig.copyCondition != None:
+        copyEnabled = True
+        pathsToCopy, pathsIgnored = \
+            actions.filterPaths( pathsRemaining, jobConfig.sourceDirAbs, jobConfig.copyCondition )
+        _logger.info( "%4d copies to be done" % len( pathsToCopy ) )
+    else: 
+        copyEnabled = False
+        _logger.info( "Copying disabled; no condition set for selecting files to be copied" )
+       
     if jobConfig.isDeleteEnabled:
-        _logger.info( "%4d matchless target files to be deleted" % len(targetDeletes) )
+        _logger.info( "%4d matchless target files to be deleted" % len( matchlessTargets ) )
 
-    if _isWorkToBeDone( relPathsToCopy, relPathsToConvert, targetDeletes, jobConfig.isDeleteEnabled ):
+    if _isWorkToBeDone( pathsToCopy, pathsToConvert, matchlessTargets , jobConfig.isDeleteEnabled ):
         if _isContinueConfirmed( forceConfirm ):
+
+            # Copies are faster, so let's get them out of the way first
             if copyEnabled:
-                actions.copyPaths( jobConfig.sourceDirAbs, relPathsToCopy, jobConfig.targetDirAbs )
+                actions.copyPaths( jobConfig.sourceDirAbs, pathsToCopy, jobConfig.targetDirAbs )
 
             if conversionEnabled:
                 streamConverter = stream.convert.ShellStreamConverter( defaultDecodeSeq,
                                                                        defaultEncodeSeq,
                                                                        decodersByExtension )
                 metaConverter = meta.convert.BasicMetaConverter()
-                streamErrors, metaErrors = actions.convertPaths( jobConfig.sourceDirAbs, relPathsToConvert,
-                                                                 jobConfig.targetDirAbs, streamConverter,
-                                                                 metaConverter)
-                for pathAbs, se in streamErrors.items():
-                    _logger.error( "Problem converting stream for %s: %s" % (pathAbs, se) );
-                for pathAbs, me in metaErrors.items():
-                    _logger.error( "Problem converting metadata for %s: %s" % (pathAbs, me) );
+                for streamError, metaError in actions.convertPaths( jobConfig.sourceDirAbs, pathsToConvert,
+                                                                    jobConfig.targetDirAbs, streamConverter,
+                                                                    metaConverter ):
+                    if streamError != None:
+                        _logger.error( "Problem converting stream for %s: %s" % (pathAbs, streamError) );
+                    if metaError != None:
+                        _logger.error( "Problem converting metadata for %s: %s" % (pathAbs, metaError) );
 
             if jobConfig.isDeleteEnabled:
-                actions.deletePaths( jobConfig.targetDirAbs, targetDeletes )
+                actions.deletePaths( jobConfig.targetDirAbs, matchlessTargets )
     else:
         _logger.info( "There is nothing to do for this job." )
 

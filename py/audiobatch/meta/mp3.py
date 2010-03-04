@@ -64,6 +64,10 @@ class Mp3File:
         self.mp3FileAbs = mp3FileAbs
         self.mp3Obj = mp3.MP3( mp3FileAbs )
 
+    @property
+    def bitrate(self):
+        return self.mp3Obj.info.bitrate
+
     def clearAll( self ):
         self.mp3Obj.delete()
         

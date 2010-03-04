@@ -32,6 +32,12 @@ class FlacFile():
         self.flacObj = mutagen.flac.FLAC( flacFileAbs )
         self.flacFileAbs = flacFileAbs
 
+    @property
+    def bitrate(self):
+        # Mutagen does not provide bitrate for Flac
+        # FIXME
+        return 900000
+
     def getTags( self ):
         commonTags = {}
 
