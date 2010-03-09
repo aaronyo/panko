@@ -1,22 +1,23 @@
 import os.path
-import flac
-import mp3
-import m4a
-from audiobatch import meta
+import copy
+
 from PIL import Image
+
+from audiobatch.meta import flac, mp3, m4a
 
 IMAGE_SUBJECT__ALBUM_COVER = "album_cover"
 
 
-def constructAudioFile( path ):
-    if meta.flac.recognized( path ):
-        return meta.flac.FlacFile( path )
-    elif meta.mp3.recognized( path ):
-        return meta.mp3.Mp3File( path )
-    elif meta.m4a.recognized( path ):
-        return meta.m4a.M4aFile( path )
+def read_audio_file( path ):
+    if flac.recognized( path ):
+        return flac.FlacFile( path )
+    elif mp3.recognized( path ):
+        return mp3.Mp3File( path )
+    elif m4a.recognized( path ):
+        return m4a.M4aFile( path )
     else:
-        raise Exception( "File type not recognized for file: %s" % audioFileAbs )
+        raise Exception( "File type not recognized for file: %s" \
+                             % path )
 
 
 class TrackMeta:
@@ -24,61 +25,68 @@ class TrackMeta:
     def __init__( self ):
         self.tags = {}
         self.images = {}
-        self.imageOutputEncoding="jpeg"
+        self.image_output_encoding = "jpeg"
         self.bitrate = None
 
-    def readFile( self, audioFileAbs, tags=True, images=False ):
-        audioFileObj = constructAudioFile( audioFileAbs )
+    def read_file( self, path, tags=True, images=False ):
+        audio_file = read_audio_file( path )
 
         if tags:
-            self.tags.update( audioFileObj.getTags() )
+            self.tags.update( audio_file.get_tags() )
         if images:
-            raise Exception("Extracting images from an audio file is not yet supported")
+            raise Exception( "Extracting images from an audio file is not " +
+                             "yet supported" )
             
-    def writeFile( self, audioFileAbs, clearFirst=False, tags=True, images=True ):
-        audioFileObj = constructAudioFile( audioFileAbs )
+    def write_file( self,
+                    path,
+                    clear_first=False,
+                    tags=True,
+                    images=True ):
+        audio_file = read_audio_file( path )
 
-        if clearFirst:
-            audioFileObj.clearAll()
+        if clear_first:
+            audio_file.clear_all()
         if tags and len( self.tags ) > 0:
-            audioFileObj.addTags( self.tags )
+            audio_file.add_tags( self.tags )
         if images and len( self.images ) > 0:
-            audioFileObj.addImages( self.images, self.imageOutputEncoding )
+            audio_file.add_images( self.images, self.image_output_encoding )
 
-        audioFileObj.save()
+        audio_file.save()
 
-    def addTag( self, tagName, tagValue ):
-        self.tags[ tagName ] = tagValue
+    def add_tag( self, tag_name, tag_value ):
+        self.tags[ tag_name ] = tag_value
 
-    def addImage( self, imageFileAbs, maxSideLength=None, subject=None ):
-        filename = os.path.basename( imageFileAbs )
+    def add_image( self, image_file_abs, max_side_length=None, subject=None ):
+        filename = os.path.basename( image_file_abs )
         if subject == None:
             if filename.startswith("cover"):
                 subject = IMAGE_SUBJECT__ALBUM_COVER
             else:
-                raise Exception( "Unable to determine image subject from filename: %s" % imageFileAbs )
+                raise Exception( "Unable to determine image subject from " +
+                                 "filename: %s" % image_file_abs )
 
-        image = Image.open( imageFileAbs )
-        if maxSideLength != None:
-            image = TrackMeta._conformSize( image, maxSideLength )
+        image = Image.open( image_file_abs )
+        if max_side_length != None:
+            image = TrackMeta._conform_size( image, max_side_length )
             
         self.images[subject] = image
         
     @staticmethod
-    def _conformSize( image, maxSideLength ):
+    def _conform_size( image, max_side_length ):
         width, height = image.size
         if width >= height:
-            if width > maxSideLength:
-                targetWidth = maxSideLength
-                targetHeight = int( (float(targetWidth) / width) * height )
+            if width > max_side_length:
+                target_width = max_side_length
+                target_height = int( (float(target_width) / width) * height )
         else:
-            if height > maxSideLength:
-                targetHeight = maxSideLength
-                targetWidth = int ( (float(targetHeight) / height) * width )
+            if height > max_side_length:
+                target_height = max_side_length
+                target_width = int ( (float(target_height) / height) * width )
         
-        if targetWidth != None:
-            return image.resize( (targetWidth, targetHeight), Image.ANTIALIAS )
+        if target_width != None:
+            return image.resize( (target_width, target_height),
+                                 Image.ANTIALIAS )
         else:
-            # both return cases should behave the same concerning making a copy rather than returning
-            # a ref to the same object
+            # make a copy so that this function doesn't sometimes return
+            # a copy and sometimes return a ref to the input image
             return copy.deepcopy(image)

@@ -4,21 +4,22 @@ import sys
 import logging
 import optparse
 import ConfigParser
-import audiobatch.meta.convert
-import audiobatch.stream.convert
-from audiobatch import meta, stream, actions
 
-_logger = logging.getLogger();
+from audiobatch.meta.convert import BasicMetaConverter
+from audiobatch.stream.convert import ShellStreamConverter
+from audiobatch import actions
+
+_LOGGER = logging.getLogger()
 
 _LIST_SEP = ';'
 
-def _buildCmdLineParser():
+def _build_cmd_line_parser():
     parser = optparse.OptionParser()
 
     parser.add_option("-f",
                       "--no-confirmation",
                       action="store_true", 
-                      dest="forceConfirm",
+                      dest="force_confirm",
                       default=False,
                       help=
 """Supplying this option avoids confirmation or any user input and is
@@ -28,100 +29,109 @@ confirm tasks before execution.  """ )
     return parser
 
 
-def _determineConfigFileAbs():
-    homePath = os.path.expanduser('~')
-    return os.path.join(homePath, '.audiobatch/audiobatch.ini')
+def _determine_config_file_abs():
+    # For now, the config file must be located in a specific directory
+    # under the users home path
+    home_path = os.path.expanduser('~')
+    return os.path.join(home_path, '.audiobatch/audiobatch.ini')
 
+def _parse_config( conf_file_abs ):
 
-def _parseConfig( confFileAbs ):
-
-    def _parseJob( confParser, jobName ):
+    def _parse_job( conf_parser, job_name ):
 
         #
         # required config params
         #
 
-        sourceDir = confParser.get( jobName, "source_dir" )
-        targetDir = confParser.get( jobName, "target_dir" )
-        audioExtensions = confParser.get( jobName, "audio_extensions" ).split( _LIST_SEP )
+        source_dir = conf_parser.get( job_name, "source_dir" )
+        target_dir = conf_parser.get( job_name, "target_dir" )
+        audio_extensions = \
+            conf_parser.get( job_name, "audio_extensions" ).split( _LIST_SEP )
         # strip whitespace and remove duplicates
-        audioExtensions = set( [ x.strip() for x in audioExtensions ] )
+        audio_extensions = set( [ x.strip() for x in audio_extensions ] )
 
         #
-        # optional config params -- checked for existence
+        # optional config params -- check for existence
         #
 
-        if confParser.has_option( jobName, "convert_condition" ):
-            convertCondition = confParser.get( jobName, "convert_condition" )
+        if conf_parser.has_option( job_name, "convert_condition" ):
+            convert_condition = conf_parser.get( job_name, "convert_condition" )
         else:
-            convertCondition = None
+            convert_condition = None
 
-        if confParser.has_option( jobName, "copy_condition" ):
-            copyCondition = confParser.get( jobName, "copy_condition" )
+        if conf_parser.has_option( job_name, "copy_condition" ):
+            copy_condition = conf_parser.get( job_name, "copy_condition" )
         else:
-            copyCondition = None
+            copy_condition = None
 
-        if confParser.has_option( jobName, "exclude_patterns" ):
-            excludePatterns = confParser.get( jobName, "exclude_patterns" ).split( _LIST_SEP )
+        if conf_parser.has_option( job_name, "exclude_patterns" ):
+            exclude_patterns = \
+                conf_parser.get( job_name,
+                                 "exclude_patterns" ).split( _LIST_SEP )
             # strip whitespace and remove duplicates
-            excludePatterns = set( [ x.strip() for x in excludePatterns ] )
+            exclude_patterns = set( [ x.strip() for x in exclude_patterns ] )
         else:
-            excludePatterns = set()
+            exclude_patterns = set()
 
-        if confParser.has_option( jobName, "delete_matchless_target_files" ):
-            isDeleteEnabled = confParser.getboolean( jobName, "delete_matchless_target_files" )
+        if conf_parser.has_option( job_name, "delete_matchless_target_files" ):
+            is_delete_enabled = \
+                conf_parser.getboolean( job_name,
+                                        "delete_matchless_target_files" )
         else:
-            isDeleteEnabled = False
+            is_delete_enabled = False
 
-        jobConfig = _Config.JobConfig( sourceDir,
-                                       targetDir,
-                                       audioExtensions,
-                                       excludePatterns,
-                                       convertCondition,
-                                       copyCondition,
-                                       isDeleteEnabled )
-        return jobConfig
+        job_config = _Config.JobConfig( source_dir,
+                                        target_dir,
+                                        audio_extensions,
+                                        exclude_patterns,
+                                        convert_condition,
+                                        copy_condition,
+                                        is_delete_enabled )
+        return job_config
 
-    confParser = ConfigParser.ConfigParser()
-    confParser.read( confFileAbs )
+    conf_parser = ConfigParser.ConfigParser()
+    conf_parser.read( conf_file_abs )
 
-    logFileAbs = confParser.get( "system", "log_file" )
-    defaultDecoderSeq = confParser.get( "default_decoder", "command_seq" )
-    defaultEncoderSeq = confParser.get( "default_encoder", "command_seq" )
-    decodersByExtension = {}
-    if confParser.has_section( "decoders_by_extension" ):
-        for extension, cmdSeq in confParser.items("decoders_by_extension"):
-            decodersByExtension[ extension ] = cmdSeq
+    log_file_abs = conf_parser.get( "system", "log_file" )
+    default_decoder_seq = conf_parser.get( "default_decoder", "command_seq" )
+    default_encoder_seq = conf_parser.get( "default_encoder", "command_seq" )
+    decoders_by_extension = {}
+    if conf_parser.has_section( "decoders_by_extension" ):
+        for extension, cmd_seq in conf_parser.items("decoders_by_extension"):
+            decoders_by_extension[ extension ] = cmd_seq
 
-    config = _Config( logFileAbs, defaultDecoderSeq, defaultEncoderSeq, decodersByExtension )
+    config = _Config( log_file_abs,
+                      default_decoder_seq,
+                      default_encoder_seq,
+                      decoders_by_extension )
 
 
-    jobNames = confParser.options( "jobs" )
-    for jobName in jobNames:
-        config.jobConfigs[jobName] = _parseJob( confParser, jobName )
+    job_names = conf_parser.options( "jobs" )
+    for job_name in job_names:
+        config.job_configs[job_name] = _parse_job( conf_parser, job_name )
 
     return config
 
         
-def _setupLogging( logFileAbs, isVerbose ):
+def _setup_logging( log_file_abs, is_verbose ):
 
-    logFileAbs = os.path.expanduser( logFileAbs )
+    log_file_abs = os.path.expanduser( log_file_abs )
     logging.getLogger().setLevel( logging.DEBUG )
 
-    fileHandler = logging.FileHandler( filename = logFileAbs, mode = 'a')
+    file_handler = logging.FileHandler( filename = log_file_abs, mode = 'a')
     # We'll always send full debug logging (which really isn't _that_ much)
     # to the file, and only info level to the console unless verbse is
     # requested
-    fileHandler.setLevel( logging.DEBUG )
-    logFileFormat = "[%(asctime)s, %(levelname)-8s]: %(message)s"
-    formatter = logging.Formatter( fmt=logFileFormat,
+    file_handler.setLevel( logging.DEBUG )
+    log_file_format = "[%(asctime)s, %(levelname)-8s]: %(message)s"
+    formatter = logging.Formatter( fmt=log_file_format,
                                    datefmt="%m-%d %H:%M" )
-    fileHandler.setFormatter( formatter )
-    logging.getLogger().addHandler( fileHandler )
+    file_handler.setFormatter( formatter )
+    logging.getLogger().addHandler( file_handler )
 
     # We use a logger to handle console output
     console = logging.StreamHandler( sys.stdout )
-    if isVerbose:
+    if is_verbose:
         console.setLevel(logging.DEBUG)
     else:
         console.setLevel(logging.INFO)
@@ -134,151 +144,203 @@ def _setupLogging( logFileAbs, isVerbose ):
     # add the handler to the root logger
     logging.getLogger().addHandler(console)
 
-    if not isVerbose:
-        _logger.info( "For verbose/debug output use '-b' or see log file: " + logFileAbs )
+    if not is_verbose:
+        _LOGGER.info( "For verbose/debug output use '-b' or see log file: "
+                      + log_file_abs )
 
 
 class _Config:
-    def __init__( self, logFileAbs, defaultDecoder, defaultEncoder, decodersByExtension ):
-        self.jobConfigs = {}
-        self.logFileAbs = logFileAbs
-        self.defaultDecoderSeq = defaultDecoder
-        self.defaultEncoderSeq = defaultEncoder
-        self.decodersByExtension = decodersByExtension
+    def __init__( self,
+                  log_file_abs,
+                  default_decoder,
+                  default_encoder,
+                  decoders_by_extension ):
+        self.job_configs = {}
+        self.log_file_abs = log_file_abs
+        self.default_decoder_seq = default_decoder
+        self.default_encoder_seq = default_encoder
+        self.decoders_by_extension = decoders_by_extension
 
     def __str__( self ):
-        strRep = 'log file: %s\n' % self.logFileAbs
-        strRep += 'default decoder sequence: %s\n' % self.defaultDecoderSeq
-        strRep += 'default encoder sequence: %s\n' % self.defaultEncoderSeq
-        for ext, seq in self.decodersByExtension.items():            
-            strRep += '%s decoder sequence: %s\n' % (ext, seq)
-        strRep += 'jobs:\n'
-        for jobName, jobConfig in self.jobConfigs.items():
-            strRep += "  %s:\n" % jobName
-            strRep += "    source: %s\n" % jobConfig.sourceDirAbs
-            strRep += "    target: %s\n" % jobConfig.targetDirAbs
-            strRep += "    audio extensions: %s\n" % jobConfig.audioExtensions
-            strRep += "    excluded patterns: %s\n" % jobConfig.excludePatterns
-            strRep += "    convert condition: %s\n" % jobConfig.convertCondition
-            strRep += "    copy condition: %s\n" % jobConfig.copyCondition
-            strRep += "    delete matchless target files: %s" % str(jobConfig.isDeleteEnabled)
-        return strRep
+        str_rep = 'log file: %s\n' % self.log_file_abs
+        str_rep += 'default decoder sequence: %s\n' % self.default_decoder_seq
+        str_rep += 'default encoder sequence: %s\n' % self.default_encoder_seq
+        for ext, seq in self.decoders_by_extension.items():            
+            str_rep += '%s decoder sequence: %s\n' % (ext, seq)
+        str_rep += 'jobs:\n'
+        for job_name, job_config in self.job_configs.items():
+            str_rep += "  %s:\n" % job_name
+            str_rep += "    source: %s\n" \
+                % job_config.source_dir_abs
+            str_rep += "    target: %s\n" \
+                % job_config.target_dir_abs
+            str_rep += "    audio extensions: %s\n" \
+                % job_config.audio_extensions
+            str_rep += "    excluded patterns: %s\n" \
+                % job_config.exclude_patterns
+            str_rep += "    convert condition: %s\n" \
+                % job_config.convert_condition
+            str_rep += "    copy condition: %s\n" \
+                % job_config.copy_condition
+            str_rep += "    delete matchless target files: %s" \
+                % str(job_config.is_delete_enabled)
+        return str_rep
         
     class JobConfig:        
-        def __init__( self, sourceDirAbs, targetDirAbs, audioExtensions, excludePatterns, convertCondition,
-                      copyCondition, isDeleteEnabled ):
-            self.sourceDirAbs = sourceDirAbs
-            self.targetDirAbs = targetDirAbs
-            self.audioExtensions = audioExtensions
-            self.excludePatterns = excludePatterns
-            self.convertCondition = convertCondition
-            self.copyCondition = copyCondition
-            self.isDeleteEnabled = isDeleteEnabled
+        def __init__( self,
+                      source_dir_abs,
+                      target_dir_abs,
+                      audio_extensions,
+                      exclude_patterns,
+                      convert_condition,
+                      copy_condition,
+                      is_delete_enabled ):
+            self.source_dir_abs = source_dir_abs
+            self.target_dir_abs = target_dir_abs
+            self.audio_extensions = audio_extensions
+            self.exclude_patterns = exclude_patterns
+            self.convert_condition = convert_condition
+            self.copy_condition = copy_condition
+            self.is_delete_enabled = is_delete_enabled
 
 
-def _isWorkToBeDone( copyList, convertList, deleteList, isDeleteEnabled ):
-    if not isDeleteEnabled:
-        deleteList = []
+def _is_work_to_be_done( copy_list,
+                         convert_list,
+                         delete_list,
+                         is_delete_enabled ):
+    if not is_delete_enabled:
+        delete_list = []
 
-    if len(copyList) + len(convertList) + len(deleteList) > 0:
+    if len(copy_list) + len(convert_list) + len(delete_list) > 0:
         return True
     else:
         return False
 
-def _isContinueConfirmed( forceConfirm ):
-    if forceConfirm:
+def _is_continue_confirmed( force_confirm ):
+    if force_confirm:
         return True
     else:
         print( "Continue with identified tasks?" )
-        isConfirmed = raw_input( "['y' to continue] > " ) == 'y'
-        return isConfirmed
+        is_confirmed = raw_input( "['y' to continue] > " ) == 'y'
+        return is_confirmed
 
-def _processJob( jobConfig, defaultDecodeSeq, defaultEncodeSeq, decodersByExtension, forceConfirm ):
-    _logger.info( "indexing source paths..." )
-    sourcePaths = actions.findPaths( jobConfig.sourceDirAbs, jobConfig.audioExtensions, jobConfig.excludePatterns )
-    sourcePaths = sorted( sourcePaths )
+def _process_job( job_config,
+                 default_decode_seq,
+                 default_encode_seq,
+                 decoders_by_extension,
+                 force_confirm ):
+    _LOGGER.info( "indexing source paths..." )
+    source_paths = actions.find_paths( job_config.source_dir_abs,
+                                       job_config.audio_extensions,
+                                       job_config.exclude_patterns )
+    source_paths = sorted( source_paths )
 
-    _logger.info( "indexing target paths..." )
-    targetPaths = actions.findPaths( jobConfig.targetDirAbs, jobConfig.audioExtensions, jobConfig.excludePatterns )
-    targetPaths = sorted( targetPaths )
+    _LOGGER.info( "indexing target paths..." )
+    target_paths = actions.find_paths( job_config.target_dir_abs,
+                                       job_config.audio_extensions,
+                                       job_config.exclude_patterns )
+    target_paths = sorted( target_paths )
 
-    _logger.info( "diffing source and target paths..." )
-    newSources, updatedSources, matchlessTargets = \
-        actions.extensionIgnorantDiff( sourcePaths, targetPaths,
-                                       jobConfig.sourceDirAbs, jobConfig.targetDirAbs )
+    _LOGGER.info( "diffing source and target paths..." )
+    new_sources, updated_sources, matchless_targets = \
+        actions.extension_ignorant_diff( source_paths,
+                                         target_paths,
+                                         job_config.source_dir_abs,
+                                         job_config.target_dir_abs )
 
-    _logger.info( "%4d sources not found in target directory" % len( newSources ) )
-    _logger.info( "%4d sources changed since corresponding target created" % len( updatedSources ) )
+    _LOGGER.info( "%4d sources not found in target directory" \
+                      % len( new_sources ) )
+    _LOGGER.info( "%4d sources changed since corresponding target created" \
+                      % len( updated_sources ) )
 
-    # We process adds and replaces the same way -- replaces just end up leading to overwriting an 
-    # existing file
-    sourceChanges = []
-    sourceChanges.extend( newSources )
-    sourceChanges.extend( updatedSources )
+    # We process adds and replaces the same way -- replaces just end
+    # up leading to overwriting an existing file
+    source_changes = []
+    source_changes.extend( new_sources )
+    source_changes.extend( updated_sources )
 
-    if jobConfig.convertCondition != None:
-        conversionEnabled = True
-        pathsToConvert, pathsRemaining = \
-            actions.filterPaths( sourceChanges, jobConfig.sourceDirAbs, jobConfig.convertCondition )
-        _logger.info( "%4d conversions to be done" % len( pathsToConvert ) )
+    if job_config.convert_condition != None:
+        conversion_enabled = True
+        paths_to_convert, paths_remaining = \
+            actions.filter_audio_files( source_changes,
+                                        job_config.source_dir_abs,
+                                        job_config.convert_condition )
+        _LOGGER.info( "%4d conversions to be done" % len( paths_to_convert ) )
     else:
-        conversionEnabled = False
-        _logger.info( "Converting disabled; no condition set for selecting files to be converted" )
+        conversion_enabled = False
+        _LOGGER.info( "Converting disabled; no condition set for selecting " +
+                      "files to be converted" )
 
-    if jobConfig.copyCondition != None:
-        copyEnabled = True
-        pathsToCopy, pathsIgnored = \
-            actions.filterPaths( pathsRemaining, jobConfig.sourceDirAbs, jobConfig.copyCondition )
-        _logger.info( "%4d copies to be done" % len( pathsToCopy ) )
+    if job_config.copy_condition != None:
+        copy_enabled = True
+        paths_to_copy, _ = \
+            actions.filter_audio_files( paths_remaining,
+                                        job_config.source_dir_abs,
+                                        job_config.copy_condition )
+        _LOGGER.info( "%4d copies to be done" % len( paths_to_copy ) )
     else: 
-        copyEnabled = False
-        _logger.info( "Copying disabled; no condition set for selecting files to be copied" )
+        copy_enabled = False
+        _LOGGER.info( "Copying disabled; no condition set for selecting " +
+                      "files to be copied" )
        
-    if jobConfig.isDeleteEnabled:
-        _logger.info( "%4d matchless target files to be deleted" % len( matchlessTargets ) )
+    if job_config.is_delete_enabled:
+        _LOGGER.info( "%4d matchless target files to be deleted" \
+                          % len( matchless_targets ) )
 
-    if _isWorkToBeDone( pathsToCopy, pathsToConvert, matchlessTargets , jobConfig.isDeleteEnabled ):
-        if _isContinueConfirmed( forceConfirm ):
+    if _is_work_to_be_done( paths_to_copy,
+                            paths_to_convert,
+                            matchless_targets ,
+                            job_config.is_delete_enabled ):
+        if _is_continue_confirmed( force_confirm ):
 
             # Copies are faster, so let's get them out of the way first
-            if copyEnabled:
-                actions.copyPaths( jobConfig.sourceDirAbs, pathsToCopy, jobConfig.targetDirAbs )
+            if copy_enabled:
+                actions.copy_paths( job_config.source_dir_abs,
+                                   paths_to_copy,
+                                   job_config.target_dir_abs )
 
-            if conversionEnabled:
-                streamConverter = stream.convert.ShellStreamConverter( defaultDecodeSeq,
-                                                                       defaultEncodeSeq,
-                                                                       decodersByExtension )
-                metaConverter = meta.convert.BasicMetaConverter()
-                for streamError, metaError in actions.convertPaths( jobConfig.sourceDirAbs, pathsToConvert,
-                                                                    jobConfig.targetDirAbs, streamConverter,
-                                                                    metaConverter ):
-                    if streamError != None:
-                        _logger.error( "Problem converting stream for %s: %s" % (pathAbs, streamError) );
-                    if metaError != None:
-                        _logger.error( "Problem converting metadata for %s: %s" % (pathAbs, metaError) );
+            if conversion_enabled:
+                stream_converter = ShellStreamConverter( default_decode_seq,
+                                                         default_encode_seq,
+                                                         decoders_by_extension )
+                meta_converter = \
+                    BasicMetaConverter( embed_folder_images = True)
+                for source_rel, stream_error, meta_error in \
+                        actions.convert_paths( job_config.source_dir_abs,
+                                               paths_to_convert,
+                                               job_config.target_dir_abs,
+                                               stream_converter,
+                                               meta_converter ):
+                    if stream_error != None:
+                        _LOGGER.error( "Problem converting stream for %s: %s" \
+                                           % (source_rel, stream_error) )
+                    if meta_error != None:
+                        _LOGGER.error( "Problem converting metadata for %s: %s"\
+                                           % (source_rel, meta_error) )
 
-            if jobConfig.isDeleteEnabled:
-                actions.deletePaths( jobConfig.targetDirAbs, matchlessTargets )
+            if job_config.is_delete_enabled:
+                actions.delete_paths( job_config.target_dir_abs,
+                                      matchless_targets )
     else:
-        _logger.info( "There is nothing to do for this job." )
+        _LOGGER.info( "There is nothing to do for this job." )
 
 
 def main(args):    
-    cmdLineParser = _buildCmdLineParser()
-    (cmdLineOptions, cmdLineArgs) = cmdLineParser.parse_args(args[1:])
+    cmd_line_parser = _build_cmd_line_parser()
+    cmd_line_options, _ = cmd_line_parser.parse_args(args[1:])
 
-    confFileAbs = _determineConfigFileAbs()
-    config = _parseConfig( confFileAbs )
-    _setupLogging( config.logFileAbs, isVerbose = True )
-    _logger.info( "Config:\n%s" % config)
+    conf_file_abs = _determine_config_file_abs()
+    config = _parse_config( conf_file_abs )
+    _setup_logging( config.log_file_abs, is_verbose = True )
+    _LOGGER.info( "Config:\n%s" % config)
 
-    for jobName, jobConfig in config.jobConfigs.items():
-        _logger.info( "Processing job: %s" % jobName )
-        _processJob( jobConfig,
-                     config.defaultDecoderSeq,
-                     config.defaultEncoderSeq,
-                     config.decodersByExtension,
-                     cmdLineOptions.forceConfirm)
+    for job_name, job_config in config.job_configs.items():
+        _LOGGER.info( "Processing job: %s" % job_name )
+        _process_job( job_config,
+                     config.default_decoder_seq,
+                     config.default_encoder_seq,
+                     config.decoders_by_extension,
+                     cmd_line_options.force_confirm)
 
 
 if __name__ == "__main__":

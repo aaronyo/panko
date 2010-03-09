@@ -1,74 +1,75 @@
 import os
 import logging
 import subprocess
+import shutil
 
-_logger = logging.getLogger();
+_LOGGER = logging.getLogger()
 
 
 class ShellStreamConverter:
-    def __init__( self, decodeCmdTemplate, encodeCmdTemplate, decodersByExtension, localCopyFirst = False ):
+    def __init__( self,
+                  default_decode_cmd,
+                  decode_cmds_by_extension,
+                  encode_cmd,
+                  local_copy_first = False ):
 
-        # Defaults to be used if a specific decoder is not specified for a given extension
-        self.decodeCmdTemplate = decodeCmdTemplate
-        self.encodeCmdTemplate = encodeCmdTemplate
+        # Defaults to be used if a specific decoder is not specified for a
+        # given extension
+        self._default_decode_cmd = default_decode_cmd
+        self._decode_cmds_by_extension = decode_cmds_by_extension
 
-        self.decodeCmdTemplateByExtension = decodersByExtension
+        self._encode_cmd = encode_cmd
 
-        self.localCopyFirst = localCopyFirst
+        self._local_copy_first = local_copy_first
 
-    @staticmethod
-    def _localTempCopy( fileAbs ):
-        filename = os.path.basename( fileAbs )
-        localCopyAbs = os.path.join( os.sep, "tmp", filename )
-        _logger.debug( 'Making local copy: "%s" to "%s"' % (fileAbs, localCopyAbs) )
-        shutil.copyfile( fileAbs, localCopyAbs )
-        return localCopyAbs
+    @staticmethod    
+    def _local_temp_copy( source_path ):
+        filename = os.path.basename( source_path )
+        local_copy_path = os.path.join( os.sep, "tmp", filename )
+        _LOGGER.debug( 'Making local copy: "%s" to "%s"' \
+                           % ( source_path, local_copy_path) )
+        shutil.copyfile( source_path, local_copy_path )
+        return local_copy_path
 
-    def convert( self, sourcePathAbs, targetPathAbs ):
+    def convert( self, source_path, target_path ):
 
-        # Copy files to a known local location.  Decoding/Encoding processes may run
-        # slowly if operating against remote files.
-        # TODO: Determine the file system device type and skip this step if the source and target
-        # locations are local.  (maybe just remove this entirely)
-        if ( self.localCopyFirst ):
-            tempSourcePathAbs = localTempCopy( sourcePathAbs )
-            pathToConvertAbs = tempSourcePathAbs
+        if ( self._local_copy_first ):
+            # Copy files to a known local location.  Decoding/Encoding
+            # processes may run slowly if operating against remote files.
+            # FIXME: Not actually convinced this is often a performance
+            # improvement
+            temp_source_path = \
+                ShellStreamConverter._local_temp_copy( source_path )
+            path_to_convert = temp_source_path
         else:
-            tempSourcePathAbs = None
-            pathToConvertAbs = sourcePathAbs
+            temp_source_path = None
+            path_to_convert = source_path
         
-        root, ext = os.path.splitext( pathToConvertAbs )
+        _, ext = os.path.splitext( path_to_convert )
         ext = ext[1:] # drop the '.'
-        if ext in self.decodeCmdTemplateByExtension:
-            decodeCmdTemplate = self.decodeCmdTemplateByExtension[ ext ]
+        if ext in self._decode_cmds_by_extension:
+            decode_cmd = self._decode_cmds_by_extension[ ext ]
         else:
-            decodeCmdTemplate = self.decodeCmdTemplate
+            decode_cmd = self._default_decode_cmd
 
-        decodeCmdSeq = eval( decodeCmdTemplate.format(inFile="pathToConvertAbs") )
-        encodeCmdSeq = eval( self.encodeCmdTemplate.format(outFile="targetPathAbs") )
+        decode_cmd = \
+            eval( decode_cmd.format( inFile="path_to_convert" ) )
+        encode_cmd = \
+            eval( self._encode_cmd.format( outFile="target_path" ) )
 
-        # Use sequences for the commands so that subprocess module handles special chars
-        # in files
+        # Use sequences for the commands, rather than a string, so that
+        # the subprocess module can deal with escaping special chars in file
+        # names when it assembles the shell command
 
-        targetLeafDir = os.path.dirname( targetPathAbs )
-        if not os.path.isdir( targetLeafDir ):
-            os.makedirs( targetLeafDir )
+        target_leaf_dir = os.path.dirname( target_path )
+        if not os.path.isdir( target_leaf_dir ):
+            os.makedirs( target_leaf_dir )
 
-        _logger.debug( "executing: " + " ".join(decodeCmdSeq) )
-        decodeProc = subprocess.call(decodeCmdSeq)
+        _LOGGER.debug( "executing: " + " ".join(decode_cmd) )
+        subprocess.call(decode_cmd)
 
-        _logger.debug( "executing: " + " ".join(encodeCmdSeq) )
-        encodeProc = subprocess.call(encodeCmdSeq)
+        _LOGGER.debug( "executing: " + " ".join(encode_cmd) )
+        subprocess.call(encode_cmd)
 
-#        _logger.debug( " ".join(decodeCmdSeq) + " | " + " ".join(encodeCmdSeq) )
-#
-#        targetLeafDir = os.path.dirname( targetPathAbs )
-#        if not os.path.isdir( targetLeafDir ):
-#            os.makedirs( targetLeafDir )
-#
-#        decodeProc = subprocess.Popen(decodeCmdSeq, stdout=subprocess.PIPE)
-#        encodeProc = subprocess.Popen(encodeCmdSeq, stdin=decodeProc.stdout)
-#        encodeProc.communicate();
-
-        if ( tempSourcePathAbs != None ):
-            os.remove( tempSourcePathAbs )
+        if ( temp_source_path != None ):
+            os.remove( temp_source_path )
