@@ -97,8 +97,12 @@ class M4AFile( AudioFile ):
                                      % _cleanse_for_ascii(m4a_tag_name) )
                     continue
                 if not track_info.is_multi_value( tag_name ):
-                    track_info.set_tag( tag_name, value[0] )
+                    # important to call __str__() as some values are
+                    # not actually strings -- only string like -- and lack
+                    # important methods like the default string cmp()
+                    track_info.set_tag( tag_name, value[0].__str__() )
                 else:
-                    track_info.set_tag( tag_name, value )
+                    track_info.set_tag( tag_name,
+                                        [ x.__str__() for x in value ] )
 
         return track_info

@@ -142,9 +142,13 @@ class MP3File( AudioFile ):
                  and mp3_obj.has_key( id3_frame_class.__name__ ) ):
                 val = mp3_obj[ id3_frame_class.__name__ ]
                 if not track_info.is_multi_value( tag_name ):
-                    track_info.set_tag( tag_name, val.text[0] )
+                    # important to call __str__() as some values are
+                    # not actually strings -- only string like -- and lack
+                    # important methods like the default string cmp()
+                    track_info.set_tag( tag_name, val.text[0].__str__() )
                 else:
-                    track_info.set_tag( tag_name, val.text )
+                    track_info.set_tag( tag_name,
+                                        [ x.__str__() for x in val.text ] )
 
         # id3 combines the number and total into a single field of
         # format: "number/total"

@@ -88,8 +88,6 @@ class TrackRepository( object ):
                 track_path,
                 track_info,
                 audio_stream ):
-        if not audio_stream.is_temp_path:
-            raise ValueError( "audio stream must have temp path" )
         audio_file = audiofile.read( audio_stream.path )
         audio_file.extend_track_info( track_info )
         audio_file.save()
@@ -106,8 +104,6 @@ class TrackRepository( object ):
                 audio_stream = None ):
         if track_info == None and audio_stream == None:
             raise ValueError( "track_info or audio_stream must have value" )
-        if audio_stream != None and audio_stream.is_temp_path:
-            raise ValueError( "audio stream must have temp path" )
 
         audio_file = self._get_audio_file( library_dir, track_path )
         if track_info != None:

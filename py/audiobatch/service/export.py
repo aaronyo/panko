@@ -4,9 +4,10 @@ import os.path
 from audiobatch.persistence import trackrepo
 from audiobatch.model import track
 from audiobatch.model import audiostream
+from audiobatch.service import ServiceEvent
+from audiobatch import service
 
 def pass_all( track ): return True
-def swallow_event( event ): pass
 
 def prepare_export( source_dir,
                     target_dir,
@@ -19,7 +20,6 @@ def prepare_export( source_dir,
 
     new_sources, updated_sources, matchless_targets = \
         _export_diff( source_tracks, target_tracks )
-    print "num dels: ", len(matchless_targets)
 
     export_job = ExportJob( source_dir, target_dir )
     for source in new_sources:
@@ -44,7 +44,7 @@ def prepare_export( source_dir,
 def export( export_job,
             convert_format,
             stream_converter,
-            listen = swallow_event ):
+            listen = service.default_event_listener() ):
 
     track_repo = trackrepo.get_repository()
 
@@ -54,68 +54,85 @@ def export( export_job,
     i = 0
     for track, is_new in export_job.converts:
         i += 1
-        listen( ExportProgressEvent( "Converting",
+        listen( ExportTrackingEvent( "Converting",
                                      i,
                                      num_converts,
                                      track.relative_path,
                                      is_new ) )
-        new_stream = stream_converter.convert( track.get_audio_stream(),
-                                               convert_format )
-        target_rel_path =  ( track.extless_relative_path +
-                             os.extsep +
-                             audiostream.ext_for_format( convert_format ) )
-        if is_new:
-            track_repo.create( export_job.target_dir,
-                               target_rel_path,
-                               track.get_track_info(),
-                               new_stream )
-        else:
-            track_repo.update( export_job.target_dir,
-                               target_rel_path,
-                               track.get_track_info(),
-                               new_stream )
-            
+        try:
+            new_stream = stream_converter.convert( track.get_audio_stream(),
+                                                   convert_format )
+            target_rel_path =  ( track.extless_relative_path +
+                                 os.extsep +
+                                 audiostream.ext_for_format( convert_format ) )
+            if is_new:
+                # import pdb; pdb.set_trace()
+                track_repo.create( export_job.target_dir,
+                                   target_rel_path,
+                                   track.get_track_info(),
+                                   new_stream )
+            else:
+                track_repo.update( export_job.target_dir,
+                                   target_rel_path,
+                                   track.get_track_info(),
+                                   new_stream )
+        finally:
+            pass
+#        except Exception as e:
+#            listen( ExportErrorEvent( "Converting",
+#                                      track.relative_path,
+#                                      e ) )
 
     i = 0
     for track, is_new in export_job.copies:
         i += 1
-        listen( ExportProgressEvent( "Copying",
+        listen( ExportTrackingEvent( "Copying",
                                      i,
                                      num_copies,
                                      track.relative_path,
                                      is_new ) )
-        track_repo.copy( export_job.source_dir,
-                         track.relative_path,
-                         export_job.target_dir,
-                         track.relative_path )
+        try:
+            track_repo.copy( export_job.source_dir,
+                             track.relative_path,
+                             export_job.target_dir,
+                             track.relative_path )
+        except Error as Exception:
+            listen( ExportErrorEvent( "Copying",
+                                      track.relative_path,
+                                      e ) )
 
     # let's use a dif name for our iteration var here, just to help avoid
     # a bug where we delete the wrong thing
     i = 0
     for del_track in export_job.deletes:
         i += 1
-        listen( ExportProgressEvent( "Deleting",
+        listen( ExportTrackingEvent( "Deleting",
                                      i,
                                      num_deletes,
                                      del_track.relative_path,
                                      is_new ) )
-        track_repo.delete( export_job.target_dir,
-                           del_track.relative_path )
+        try:
+            track_repo.delete( export_job.target_dir,
+                               del_track.relative_path )
+        except Exception as e:
+            listen( ExportErrorEvent( "Deleting",
+                                      del_track.relative_path,
+                                      e ) )
 
 
-
-# Determine all new sources, updated sources and matchless targets so that we
-# can identify the tasks necessary to bring the target collection
-# up to date with an export of the sources.  File conversion is assumed,
-# so extensions are ignored in processing the diff.
-#
-# The function assumes only one file exists per title (e.g. file paths
-# differ by more than just extension).  If this is not the case fo
-# some title, the function will ensure that at least one copy of the
-# title remains or is scheduled for the targets.
-#
-# The function has a lot of local variables
 def _export_diff( sources, targets ):
+
+    """
+    Determine tasks necessary to bring the target collection up to date.
+
+    Identify all new sources, updated sources and matchless targets.  File
+    conversion is assumed, so extensions are ignored in processing the diff.
+
+    The function assumes only one file exists per title (e.g. file paths
+    differ by more than just extension).  If this is not the case for
+    some title, the function will ensure that at least one copy of the
+    title remains or is scheduled for the targets.
+    """
 
     sources = sorted( sources, track.extless_compare )
     targets = sorted( targets, track.extless_compare )
@@ -165,7 +182,6 @@ def _export_diff( sources, targets ):
 
     return new_sources, updated_sources, matchless_targets
 
-
     
 class ExportJob( object ):
     def __init__( self, source_dir, target_dir ):
@@ -186,7 +202,6 @@ class ExportJob( object ):
         self.ignores.append( (track, is_new) )
 
     def add_delete( self, track ):
-        print "ADDED DELETE"
         self.deletes.append( track )                
 
     def summary( self ):
@@ -215,8 +230,10 @@ class ExportJob( object ):
 
         return str
 
-class ExportProgressEvent( object ):
+
+class ExportTrackingEvent( ServiceEvent ):
     def __init__( self, type, num, total, rel_path, is_new ):
+        ServiceEvent.__init__( self, ServiceEvent.INFO )
         self.type = type
         self.num = num
         self.total = total
@@ -233,3 +250,15 @@ class ExportProgressEvent( object ):
                                              self.rel_path )
         return msg
 
+
+class ExportErrorEvent( ServiceEvent ):
+    def __init__( self, type, rel_path, exception ):
+        ServiceEvent.__init__( self, ServiceEvent.ERROR )
+        self.type = type
+        self.rel_path = rel_path
+        self.exception = exception
+
+    def message( self ):
+        msg = "%s '%s' failed: %s" % ( self.type,
+                                       self.rel_path,
+                                       self.exception )

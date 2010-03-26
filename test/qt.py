@@ -81,7 +81,7 @@ print ""
 from audiobatch.persistence import trackrepo
 repo = trackrepo.get_repository()
 all_tracks = \
-    repo.find_tracks("/Volumes/fileshare/media/audio/originals/INXS" )
+    repo.find_tracks("/Users/aaronyo/temp/lib" )
 num_tracks = len( all_tracks )
 print "num tracks: ", num_tracks
 
@@ -113,14 +113,12 @@ print ""
 from audiobatch.service import export
 
 job = export.prepare_export(
-    "/Volumes/fileshare/media/audio/originals/The Swell Season/Once",
-    "/Users/aaronyo/temp/Once",
+    "/Users/aaronyo/temp/lib",
+    "/Users/aaronyo/temp/exp",
     convert_test = lambda track: True,
     del_matchless_targets = True)
 
 print job.summary()
 
-def listen_print( event ): print( event.message() )
-
-export.export( job, "mp3", conv, listen_print)
+export.export( job, "mp3", conv)
 

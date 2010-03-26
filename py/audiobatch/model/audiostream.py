@@ -8,12 +8,14 @@ FLAC_STREAM = "flac"
 MP3_STREAM = "mp3"
 ALAC_STREAM = "alac"
 AAC_STREAM = "aac"
+WAV_STREAM = "wav"
 
 _ext_by_format = {
     FLAC_STREAM : "flac",
     MP3_STREAM : "mp3",
     ALAC_STREAM : "m4a",
-    AAC_STREAM : "m4a"
+    AAC_STREAM : "m4a",
+    WAV_STREAM : "wav"
 }
 
 _LOGGER = logging.getLogger()
@@ -47,9 +49,9 @@ def ext_for_format( format ):
     return _ext_by_format[ format ]
 
 
-_ffmpeg_decode_cmd = "['ffmpeg', '-i', {inFile}, '-f', 'wav', '-']"
-_sox_decode_cmd = "['sox', '-S', {inFile}, '-t', 'wav', '/tmp/out.wav']"
-_lame_mp3_encode_cmd = "['lame', '-V0', '/tmp/out.wav', {outFile}]"
+_ffmpeg_decode_cmd = "['ffmpeg', '-i', {inFile}, '-f', 'wav', {midFile}]"
+_sox_decode_cmd = "['sox', '-S', {inFile}, '-t', 'wav', {midFile}]"
+_lame_mp3_encode_cmd = "['lame', '-V0', {midFile}, {outFile}]"
 
 def make_converter( default_decode_cmd = _ffmpeg_decode_cmd,
                     decode_cmds_by_format = {FLAC_STREAM: _sox_decode_cmd},
@@ -85,6 +87,8 @@ class _ShellStreamConverter:
         source_path = stream.path
         target_path = _ShellStreamConverter._temp_stream_filename(
             target_format )
+        mid_path = _ShellStreamConverter._temp_stream_filename(
+            WAV_STREAM )
         
         if stream.format in self._decode_cmds_by_format:
             decode_cmd = self._decode_cmds_by_format[ stream.format ]
@@ -92,9 +96,11 @@ class _ShellStreamConverter:
             decode_cmd = self._default_decode_cmd
 
         decode_cmd = \
-            eval( decode_cmd.format( inFile="source_path" ) )
+            eval( decode_cmd.format( inFile = "source_path",
+                                     midFile = "mid_path" ) )
         encode_cmd = \
-            eval( self._encode_cmd.format( outFile="target_path" ) )
+            eval( self._encode_cmd.format( outFile = "target_path",
+                                           midFile = "mid_path" ) )
 
         # Use sequences for the commands, rather than a string, so that
         # the subprocess module can deal with escaping special chars in file
@@ -106,10 +112,10 @@ class _ShellStreamConverter:
 
         _LOGGER.debug( "executing: " + " ".join(decode_cmd) )
         # FIXME: vulnerable to symlink attack
-        subprocess.call(decode_cmd)
+        subprocess.call(decode_cmd, stderr=open('/dev/ttys002', 'w'))
 
         _LOGGER.debug( "executing: " + " ".join(encode_cmd) )
-        subprocess.call(encode_cmd)
+        subprocess.call(encode_cmd, stderr=open('/dev/ttys002', 'w'))
         
         new_audio_file = audiofile.read( target_path )
         new_stream = new_audio_file.get_audio_stream()

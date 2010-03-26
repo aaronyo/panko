@@ -93,7 +93,7 @@ class AudioFile( object ):
         if os.path.isfile( cover_path ):
             return {image.SUBJECT__ALBUM_COVER: image.makeImage( cover_path ) }
         else:
-            return []
+            return {}
 
     def _copy_tags_to( self, target_path ):
         """ Copy tags to a file of the same format as this AudioFile. """
