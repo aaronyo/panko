@@ -120,5 +120,5 @@ job = export.prepare_export(
 
 print job.summary()
 
-export.export( job, "mp3", conv)
+export.export( job, "mp3" )
 
