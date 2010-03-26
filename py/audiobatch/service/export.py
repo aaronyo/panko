@@ -43,7 +43,7 @@ def prepare_export( source_dir,
 
 def export( export_job,
             convert_format,
-            stream_converter,
+            stream_converter = audiostream.make_converter(),
             listen = service.default_event_listener() ):
 
     track_repo = trackrepo.get_repository()
@@ -204,6 +204,11 @@ class ExportJob( object ):
     def add_delete( self, track ):
         self.deletes.append( track )                
 
+    def has_work( self ):
+        return (    len( self.converts ) > 0
+                 or len( self.copies ) > 0
+                 or len( self.deletes ) > 0 )
+
     def summary( self ):
         copy_new = 0; copy_upd = 0;
         conv_new = 0; conv_upd = 0;
@@ -226,7 +231,7 @@ class ExportJob( object ):
         str += "%d updated files will be converted\n" % conv_upd
         str += "%d updated files will be copied\n" % copy_upd
         str += "%d updated files will be ignored\n" % ignr_upd
-        str += "%d stale targets will be deleted\n" % deletes
+        str += "%d stale targets will be deleted" % deletes
 
         return str
 
