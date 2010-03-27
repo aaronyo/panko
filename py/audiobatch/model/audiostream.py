@@ -112,10 +112,10 @@ class _ShellStreamConverter:
 
         _LOGGER.debug( "executing: " + " ".join(decode_cmd) )
         # FIXME: vulnerable to symlink attack
-        subprocess.call(decode_cmd, stderr=open('/dev/ttys002', 'w'))
+        subprocess.call( decode_cmd )
 
         _LOGGER.debug( "executing: " + " ".join(encode_cmd) )
-        subprocess.call(encode_cmd, stderr=open('/dev/ttys002', 'w'))
+        subprocess.call( encode_cmd )
         
         new_audio_file = audiofile.read( target_path )
         new_stream = new_audio_file.get_audio_stream()

@@ -43,7 +43,7 @@ def prepare_export( source_dir,
 
 def export( export_job,
             convert_format,
-            stream_converter = audiostream.make_converter(),
+            stream_converter =  audiostream.make_converter(),
             listen = service.default_event_listener() ):
 
     track_repo = trackrepo.get_repository()
