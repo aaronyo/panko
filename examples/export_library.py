@@ -16,6 +16,9 @@ original files (minus extension, of course).
 
 import sys
 from audiobatch.service import export
+from audiobatch import console
+
+from optparse import OptionParser
 
 lib_dir = "/Volumes/fileshare/media/audio/originals"
 exp_dir = "/Volumes/fileshare/media/audio/compressed_for_portability"
@@ -30,10 +33,12 @@ export_job = export.prepare_export( lib_dir,
                                     del_matchless_targets = True)
 
 print export_job.summary()
+print ""
 if export_job.has_work():
-    print( "Continue with identified tasks?" )
-    is_confirmed = raw_input( "['y' to continue] > " ) == 'y'
-    if not is_confirmed:
+    response = console.prompt( None,
+                               ["y", "n"],
+                               "Continue with identified tasks?" )
+    if not response.lower() == 'y':
         sys.exit( 0 )
 else:
     print( "Nothing to do" )
@@ -47,7 +52,6 @@ export.export( export_job, "mp3" )
 
 
 # TODO:
-# * Fix resume on error for individual files
-# * Allow long output to secondary terminal
+# * remove rest of logging statements or implement logging setup
 # * Run qt.py in 3.0 compat mode
 
