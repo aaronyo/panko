@@ -66,7 +66,6 @@ def export( export_job,
                                  os.extsep +
                                  audiostream.ext_for_format( convert_format ) )
             if is_new:
-                # import pdb; pdb.set_trace()
                 track_repo.create( export_job.target_dir,
                                    target_rel_path,
                                    track.get_track_info(),
@@ -76,12 +75,10 @@ def export( export_job,
                                    target_rel_path,
                                    track.get_track_info(),
                                    new_stream )
-        finally:
-            pass
-#        except Exception as e:
-#            listen( ExportErrorEvent( "Converting",
-#                                      track.relative_path,
-#                                      e ) )
+        except Exception as e:
+            listen( ExportErrorEvent( "Converting",
+                                      track.relative_path,
+                                      e ) )
 
     i = 0
     for track, is_new in export_job.copies:
@@ -96,7 +93,7 @@ def export( export_job,
                              track.relative_path,
                              export_job.target_dir,
                              track.relative_path )
-        except Error as Exception:
+        except Exception as e:
             listen( ExportErrorEvent( "Copying",
                                       track.relative_path,
                                       e ) )
@@ -267,3 +264,4 @@ class ExportErrorEvent( ServiceEvent ):
         msg = "%s '%s' failed: %s" % ( self.type,
                                        self.rel_path,
                                        self.exception )
+        return msg
