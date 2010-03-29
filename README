@@ -40,11 +40,11 @@ gave them only a cursory review before deciding to just dive in.  Here's a
 little more detail on my motivations:
 
 * Provide a model for tracks and albums and their metadata ("tags", bitrate,
-identity like ISRC, accuracy/accuraterip) making it clear and easy to work with
-generic properties regardless of media type
-* Contain all the details of file access behind a simple DDD (Domain
-Driven Design) style repository so that performance concerns meta data,
-such as network file access, can be improved upon in isolation
+identity like ISRC, accuracy/accuraterip) making it clear and easy to work
+with generic properties regardless of media type
+* Contain all the details of file access behind a simple DDD (Domain Driven
+Design) style repository so that performance concerns such as network
+file access, can be improved upon in isolation
 * Practice python coding and DDD
 
 If you'd like to learn more about what Audiobatch is currently capable of,
