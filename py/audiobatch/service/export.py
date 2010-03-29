@@ -15,8 +15,8 @@ def prepare_export( source_dir,
                     copy_test = pass_all,
                     del_matchless_targets = False ):
     track_repo = trackrepo.get_repository()
-    source_tracks = track_repo.find_tracks( source_dir )
-    target_tracks = track_repo.find_tracks( target_dir )
+    source_tracks = track_repo.all_tracks( source_dir )
+    target_tracks = track_repo.all_tracks( target_dir )
 
     new_sources, updated_sources, matchless_targets = \
         _export_diff( source_tracks, target_tracks )

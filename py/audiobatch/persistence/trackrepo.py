@@ -55,8 +55,8 @@ class TrackRepository( object ):
         self._extensions = extensions
         self._exclude_patterns = exclude_patterns
 
-    def find_tracks( self,
-                     library_dir ):
+    def all_tracks( self,
+                    library_dir ):
 
         relative_paths = self._find_paths( library_dir,
                                            self._extensions,
@@ -74,6 +74,17 @@ class TrackRepository( object ):
             tracks.append( track )
               
         return tracks
+
+    def filter_tracks( self,
+                       library_dir,
+                       filter ):
+        tracks = self.all_tracks( library_dir )
+        filtered_tracks = []
+        for track in tracks:
+            if filter( track ):
+                filtered_tracks.append( track )
+
+        return filtered_tracks
 
     def get_track_info( self, library_dir, track_path ):
         audio_file = self._get_audio_file( library_dir, track_path )
@@ -111,6 +122,13 @@ class TrackRepository( object ):
         if audio_stream != None:
             audio_file.set_audio_stream( audio_stream )
         audio_file.save()
+
+
+    def update_track( self, track, track_info = None, audio_stream = None ):
+        self.update( track.library_dir,
+                     track.relative_path,
+                     track_info,
+                     audio_stream )
 
 
     def copy( self,
