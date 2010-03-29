@@ -1,6 +1,11 @@
 from audiobatch.model import track, audiostream
 from audiobatch.persistence.audiofile import mp3, flac
 
+lib_dir = "/Users/aaronyo/temp/lib"
+exp_dir = "/Users/aaronyo/temp/exp"
+
+real_lib_dir = "/Volumes/fileshare/media/audio/originals"
+
 m = mp3.MP3File("/Users/aaronyo/temp/test.mp3")
 print "start: ", m
 
@@ -81,7 +86,7 @@ print ""
 from audiobatch.persistence import trackrepo
 repo = trackrepo.get_repository()
 all_tracks = \
-    repo.find_tracks("/Users/aaronyo/temp/lib" )
+    repo.all_tracks( real_lib_dir )
 num_tracks = len( all_tracks )
 print "num tracks: ", num_tracks
 
@@ -91,19 +96,27 @@ print "first track_info: ", first_track.get_track_info().tags(), "\n"
 print "first audio_stream: ", first_track.get_audio_stream().__dict__, "\n"
 
 import sys
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 if len(sys.argv) > 1 and sys.argv[1] == "--slow":
     sys.stdout.flush()
     i = 0
-    genres = set()
+    genres = {}
     for track in all_tracks:
         i += 1
         track_info = track.get_track_info()
-        genres.add(track_info.genre)
+        g = track_info.genre
+        if g in genres:
+            genres[ g ] += 1
+        else:
+            genres[ g ] = 1
         if i % 250 == 0:
             print "track_info_read: ", i
             sys.stdout.flush()
             
-    print "all genres: ", genres
+    print( "all genres: ")
+    pp.pprint( genres )
     
 
 if len(sys.argv) > 1 and sys.argv[1] == "--slow":
@@ -114,8 +127,8 @@ if len(sys.argv) > 1 and sys.argv[1] == "--slow":
     from audiobatch.service import export
 
     job = export.prepare_export(
-        "/Users/aaronyo/temp/lib",
-        "/Users/aaronyo/temp/exp",
+        lib_dir,
+        exp_dir,
         convert_test = lambda track: True,
         del_matchless_targets = True)
 
@@ -123,3 +136,13 @@ if len(sys.argv) > 1 and sys.argv[1] == "--slow":
 
     export.export( job, "mp3" )
 
+
+    print ""
+    print "######################################## FILTER"
+    print ""
+    
+    filter = lambda track: track.get_track_info().genre == "Folk"
+    repo = trackrepo.get_repository()
+    tracks = repo.filter_tracks( lib_dir, filter )
+    for track in tracks:
+        print "filtered track: %s" % track.get_track_info().tags()
