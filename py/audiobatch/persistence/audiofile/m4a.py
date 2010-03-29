@@ -83,7 +83,7 @@ class M4AFile( AudioFile ):
                 track_info.set_tag( "album.disc_number", first_val[0] )
                 if first_val[1] != 0:
                     track_info.set_tag( "album.disc_total", first_val[1] )
-            if m4a_tag_name == "trkn":
+            elif m4a_tag_name == "trkn":
                 first_val = value[0]
                 track_info.set_tag( "track_number", first_val[0] )
                 if first_val[1] != 0:
@@ -95,8 +95,8 @@ class M4AFile( AudioFile ):
                 try:
                     tag_name = _M4A_TO_COMMON[ m4a_tag_name ]            
                 except KeyError:
-                    _LOGGER.warn( "Common mapping for m4a tag '%s' not found" \
-                                     % _cleanse_for_ascii(m4a_tag_name) )
+                    _LOGGER.debug( "Common mapping for m4a tag '%s' not found" \
+                                       % _cleanse_for_ascii(m4a_tag_name) )
                     continue
                 if not track_info.is_multi_value( tag_name ):
                     # important to call unicode() as some values are
