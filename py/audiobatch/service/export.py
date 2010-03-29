@@ -43,7 +43,7 @@ def prepare_export( source_dir,
 
 def export( export_job,
             convert_format,
-            stream_converter =  audiostream.make_converter(),
+            stream_converter = audiostream.make_converter(),
             listen = service.default_event_listener() ):
 
     track_repo = trackrepo.get_repository()
@@ -242,7 +242,7 @@ class ExportTrackingEvent( ServiceEvent ):
         self.rel_path = rel_path
         self.is_new = is_new
 
-    def message( self ):
+    def get_message( self ):
         file_desc = "new" if self.is_new else "updated"
         file_desc = "stale target" if (self.type == "Deleting") else file_desc
         msg = "%s (%d/%d) %s file: '%s'" % ( self.type,
@@ -260,7 +260,7 @@ class ExportErrorEvent( ServiceEvent ):
         self.rel_path = rel_path
         self.exception = exception
 
-    def message( self ):
+    def get_message( self ):
         msg = "%s '%s' failed: %s" % ( self.type,
                                        self.rel_path,
                                        self.exception )

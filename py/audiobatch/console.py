@@ -1,8 +1,18 @@
 import sys
 import os
+import logging
 
-def print_event( event ):
-    print( event.severity.upper() + ": " + event.message() )
+from audiobatch.service import ServiceEvent
+
+_LOGGER = logging.getLogger()
+_event_to_log_lvl = { ServiceEvent.INFO : logging.INFO,
+                      ServiceEvent.ERROR : logging.DEBUG }
+
+
+
+
+def log_event( event ):
+    _LOGGER.log( _event_to_log_lvl[ event.severity ], event.get_message() )
 
 
 def prompt( prompt = None, options = None, pre_prompt = None ):
@@ -41,4 +51,42 @@ def _do_prompt( prompt, options, pre_prompt ):
 
     input = sys.stdin.readline().rstrip( os.linesep )
     return input
+
+
+def _setup_logging():
+    logging.getLogger().setLevel( logging.DEBUG )
+
+
+def _setup_console_logging():
+    # DEBUG messages will go to stderr and INFO will go to stdout.  This
+    # allows debug or diagnostic information to be redirected to a secondary
+    # location, e.g. another terminal or file, while keeping primary
+    # info in the main terminal.
+
+    formatter = logging.Formatter("[%(levelname)-8s]: %(message)s")
+
+    # For not we will not differentiate between debug and diagnostic
+    # information.  An example of diagnostic information is the exact
+    # shell command used to convert an audio stream or the progress
+    # output by that shell command 
+    diagnostic = logging.StreamHandler( sys.stderr )
+    diagnostic.setFormatter(formatter)
+    diagnostic.setLevel( logging.DEBUG )
+    diag_filter = logging.Filter()
+    # we _want _only_ debug to go to stderr, not higher level messages, which
+    # will go to stdout
+    diag_filter.filter = lambda record: record.levelno == logging.DEBUG
+    diagnostic.addFilter( diag_filter )
+    logging.getLogger().addHandler( diagnostic )
+
+    # Now we setup up the logger for primary info, e.g. status updates
+    # for a batch conversion process.
+    primary = logging.StreamHandler( sys.stdout )
+    primary.setFormatter(formatter)
+    primary.setLevel( logging.INFO )
+    logging.getLogger().addHandler( primary )
+
+
+_setup_logging()
+_setup_console_logging()
 

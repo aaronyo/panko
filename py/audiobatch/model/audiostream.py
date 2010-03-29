@@ -55,7 +55,8 @@ _lame_mp3_encode_cmd = "['lame', '-V0', {midFile}, {outFile}]"
 
 def make_converter( default_decode_cmd = _ffmpeg_decode_cmd,
                     decode_cmds_by_format = {FLAC_STREAM: _sox_decode_cmd},
-                    encode_cmd = _lame_mp3_encode_cmd ):
+                    encode_cmd = _lame_mp3_encode_cmd,
+                    diagnositc_out = None ):
     return _ShellStreamConverter( default_decode_cmd,
                                   decode_cmds_by_format,
                                   encode_cmd )

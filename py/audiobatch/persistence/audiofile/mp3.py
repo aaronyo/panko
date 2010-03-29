@@ -142,13 +142,13 @@ class MP3File( AudioFile ):
                  and mp3_obj.has_key( id3_frame_class.__name__ ) ):
                 val = mp3_obj[ id3_frame_class.__name__ ]
                 if not track_info.is_multi_value( tag_name ):
-                    # important to call __str__() as some values are
+                    # important to call unicode() as some values are
                     # not actually strings -- only string like -- and lack
                     # important methods like the default string cmp()
-                    track_info.set_tag( tag_name, val.text[0].__str__() )
+                    track_info.set_tag( tag_name, unicode(val.text[0]) )
                 else:
                     track_info.set_tag( tag_name,
-                                        [ x.__str__() for x in val.text ] )
+                                        [ unicode(x) for x in val.text ] )
 
         # id3 combines the number and total into a single field of
         # format: "number/total"
@@ -156,10 +156,10 @@ class MP3File( AudioFile ):
         disc_total = None
         track_number = None
         track_total = None
-        if mp3_obj.has_key( id3.TRCK.__name__ ):
+        if id3.TRCK.__name__ in mp3_obj:
             trck = mp3_obj[ id3.TRCK.__name__ ]
             track_number, track_total = _decode_TRCK_frame( trck )
-        if mp3_obj.has_key( id3.TPOS.__name__ ):
+        if id3.TPOS.__name__ in mp3_obj:
             tpos = mp3_obj[ id3.TPOS.__name__ ]        
             disc_number, disc_total = _decode_TPOS_frame( tpos )
         track_info.set_tag( "track_number", track_number )

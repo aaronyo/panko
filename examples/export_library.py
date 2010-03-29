@@ -15,10 +15,10 @@ original files (minus extension, of course).
 """
 
 import sys
+from optparse import OptionParser
+
 from audiobatch.service import export
 from audiobatch import console
-
-from optparse import OptionParser
 
 lib_dir = "/Volumes/fileshare/media/audio/originals"
 exp_dir = "/Volumes/fileshare/media/audio/compressed_for_portability"
@@ -45,13 +45,7 @@ else:
     sys.exit( 0 )
 
 
-# Use the export service's defaults for conversion and
+# Use the export service's defaults for conversion and for
 # console output.  See audiobatch.service.export for details
 # on how to use audio stream conversion tools of your choice.
 export.export( export_job, "mp3" )
-
-
-# TODO:
-# * remove rest of logging statements or implement logging setup
-# * Run qt.py in 3.0 compat mode
-

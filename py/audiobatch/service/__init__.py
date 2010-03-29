@@ -16,4 +16,4 @@ class ServiceEvent( object ):
 
 def default_event_listener():
     from audiobatch import console
-    return console.print_event
+    return console.log_event

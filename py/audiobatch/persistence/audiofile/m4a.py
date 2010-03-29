@@ -34,9 +34,11 @@ EXTENSIONS = ['m4a']
 # m4a tag names.
  
 def _cleanse_for_ascii( unclean ):
+    
     if unclean.startswith( '\xa9' ):
-        return r"\xa9" + unclean.replace( '\xa9' , '' )
-    return unclean
+        return r"\xa9" + unclean.replace( '\xa9' , '', 1 )
+    else:
+        return unclean
 
 
 def recognized( path ):
@@ -97,12 +99,12 @@ class M4AFile( AudioFile ):
                                      % _cleanse_for_ascii(m4a_tag_name) )
                     continue
                 if not track_info.is_multi_value( tag_name ):
-                    # important to call __str__() as some values are
+                    # important to call unicode() as some values are
                     # not actually strings -- only string like -- and lack
                     # important methods like the default string cmp()
-                    track_info.set_tag( tag_name, value[0].__str__() )
+                    track_info.set_tag( tag_name, unicode(value[0]) )
                 else:
                     track_info.set_tag( tag_name,
-                                        [ x.__str__() for x in value ] )
+                                        [ unicode(x) for x in value ] )
 
         return track_info

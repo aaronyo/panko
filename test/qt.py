@@ -106,19 +106,20 @@ if len(sys.argv) > 1 and sys.argv[1] == "--slow":
     print "all genres: ", genres
     
 
-print ""
-print "######################################## EXPORT"
-print ""
+if len(sys.argv) > 1 and sys.argv[1] == "--slow":
+    print ""
+    print "######################################## EXPORT"
+    print ""
 
-from audiobatch.service import export
+    from audiobatch.service import export
 
-job = export.prepare_export(
-    "/Users/aaronyo/temp/lib",
-    "/Users/aaronyo/temp/exp",
-    convert_test = lambda track: True,
-    del_matchless_targets = True)
+    job = export.prepare_export(
+        "/Users/aaronyo/temp/lib",
+        "/Users/aaronyo/temp/exp",
+        convert_test = lambda track: True,
+        del_matchless_targets = True)
 
-print job.summary()
+    print job.summary()
 
-export.export( job, "mp3" )
+    export.export( job, "mp3" )
 
