@@ -1,3 +1,5 @@
+# Until I've got some "real" tests, I've got this...
+
 from audiobatch.model import track, audiostream
 from audiobatch.persistence.audiofile import mp3, flac
 
