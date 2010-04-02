@@ -4,15 +4,15 @@ import shutil
 from audiobatch.model import image 
 
 def read( path ):
-    from audiobatch.persistence.audiofile import flac, mp3, m4a
+    from audiobatch.persistence.audiofile import flac, mp3, mp4
     _, ext = os.path.splitext( path )
     ext = ext[1:] # drop the "."
     if ext in flac.EXTENSIONS:
         return flac.FLACFile( path )
     elif ext in mp3.EXTENSIONS:
         return mp3.MP3File( path )
-    elif ext in m4a.EXTENSIONS:
-        return m4a.M4AFile( path )
+    elif ext in mp4.EXTENSIONS:
+        return mp4.MP4File( path )
     else:
         raise Exception( "File extension not recognized for file: %s"
                          % path )

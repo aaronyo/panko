@@ -2,7 +2,7 @@ import logging
 import mutagen.flac
 from audiobatch.persistence.audiofile import AudioFile
 
-from audiobatch.model import track, audiostream
+from audiobatch.model import track, audiostream, format
 
 _LOGGER = logging.getLogger()
 
@@ -47,7 +47,7 @@ class FLACFile( AudioFile ):
         # FIXME: Provide proper bitrate implementation
         dummy_bitrate = 900000
         return audiostream.AudioStream( dummy_bitrate,
-                                        audiostream.FLAC_STREAM,
+                                        format.FLAC_STREAM,
                                         self.path )
 
     def get_track_info( self ):

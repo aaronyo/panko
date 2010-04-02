@@ -2,21 +2,7 @@ import os
 import os.path
 import logging
 import subprocess
-from audiobatch.persistence import audiofile
-
-FLAC_STREAM = "flac"
-MP3_STREAM = "mp3"
-ALAC_STREAM = "alac"
-AAC_STREAM = "aac"
-WAV_STREAM = "wav"
-
-_ext_by_format = {
-    FLAC_STREAM : "flac",
-    MP3_STREAM : "mp3",
-    ALAC_STREAM : "m4a",
-    AAC_STREAM : "m4a",
-    WAV_STREAM : "wav"
-}
+from audiobatch.model import format
 
 _LOGGER = logging.getLogger()
     
@@ -45,24 +31,23 @@ class AudioStream( object ):
          self.is_temp_path = False
 
 
-def ext_for_format( format ):
-    return _ext_by_format[ format ]
-
-
 _ffmpeg_decode_cmd = "['ffmpeg', '-i', {inFile}, '-f', 'wav', {midFile}]"
 _sox_decode_cmd = "['sox', '-S', {inFile}, '-t', 'wav', {midFile}]"
 _lame_mp3_encode_cmd = "['lame', '-V0', {midFile}, {outFile}]"
 
+
 def make_converter( default_decode_cmd = _ffmpeg_decode_cmd,
-                    decode_cmds_by_format = {FLAC_STREAM: _sox_decode_cmd},
+                    decode_cmds_by_format = { format.FLAC_STREAM :
+                                                  _sox_decode_cmd },
                     encode_cmd = _lame_mp3_encode_cmd,
                     diagnositc_out = None ):
     return _ShellStreamConverter( default_decode_cmd,
                                   decode_cmds_by_format,
                                   encode_cmd )
 
-# and should be moved to another module
-class _ShellStreamConverter:
+
+# Includes infrastructure detail.  Should be moved out of model package.
+class _ShellStreamConverter ( object ):
     def __init__( self,
                   default_decode_cmd,
                   decode_cmds_by_format,
@@ -76,11 +61,11 @@ class _ShellStreamConverter:
         self._encode_cmd = encode_cmd
 
     @staticmethod
-    def _temp_stream_filename( format ):
+    def _temp_stream_filename( target_format ):
+        ext = format.stream_to_ext( target_format )
         # FIXME -- better way to do this to avoid security warning?  Could
         # create the file, ensuring perms are as desired, then force encoder
         # to overwrite, but that may require per encoder handling.
-        ext = ext_for_format( format )
         return os.tmpnam() + os.extsep + ext
 
     def convert( self, stream, target_format ):
@@ -89,7 +74,7 @@ class _ShellStreamConverter:
         target_path = _ShellStreamConverter._temp_stream_filename(
             target_format )
         mid_path = _ShellStreamConverter._temp_stream_filename(
-            WAV_STREAM )
+            format.WAV_STREAM )
         
         if stream.format in self._decode_cmds_by_format:
             decode_cmd = self._decode_cmds_by_format[ stream.format ]
@@ -118,6 +103,7 @@ class _ShellStreamConverter:
         _LOGGER.debug( "executing: " + " ".join(encode_cmd) )
         subprocess.call( encode_cmd )
         
+        from audiobatch.persistence import audiofile
         new_audio_file = audiofile.read( target_path )
         new_stream = new_audio_file.get_audio_stream()
         new_stream.is_temp_path = True

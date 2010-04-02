@@ -4,9 +4,7 @@ import StringIO
 import shutil
 
 from audiobatch.persistence.audiofile import AudioFile
-from audiobatch.model import audiostream
-from audiobatch.model import image
-from audiobatch.model import track
+from audiobatch.model import audiostream, image, track, format
 
 _LOGGER = logging.getLogger()
 
@@ -85,7 +83,7 @@ class MP3File( AudioFile ):
         # FIXME: Return 'None' and force client to handle?
         if self._updated_audio_stream == None:
             return audiostream.AudioStream( self._mp3_obj.info.bitrate,
-                                            audiostream.MP3_STREAM,
+                                            format.MP3_STREAM,
                                             self.path )
         else:
             return self._updated_audio_stream

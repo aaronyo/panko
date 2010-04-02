@@ -4,6 +4,7 @@ from copy import deepcopy
 from audiobatch.model import album
 import types
 
+
 def extless_compare( track1, track2 ):    
     return cmp( track1.extless_relative_path, track2.extless_relative_path )
 
@@ -109,18 +110,26 @@ class TrackInfo( object ):
         info_obj.__dict__[ tag_name ] = tag_val
 
     def has_tag( self, tag_name ):
-        is_multi = self.is_multi_value(tag_name)
+        is_multi = self.is_multi_value( tag_name )
         info_obj, tag_name = self._which( tag_name )
         val = info_obj.__dict__[ tag_name ]
-        return ( ( is_multi and len(val) > 0 ) or val != None )
+        return ( ( is_multi and len(val) > 0 )
+                 or ( not is_multi and val != None ) )
 
     def tags( self ):
-        tags = dict( self.__dict__ )
-        del tags[ "album_info" ]
-        album_tags = \
-            dict( [("album." + k, v) for k, v in self.album_info.__dict__.items() ] )
-        tags.update( album_tags )
+        tag_names = self.__dict__.keys()
+        tag_names.remove( "album_info" )
+        album_tag_names = \
+            [ ("album." + k) for k in self.album_info.__dict__.keys() ]
+        tag_names.extend( album_tag_names )
+        tags = {}
+        for tag_name in tag_names:
+            if self.has_tag( tag_name ):
+                tags[ tag_name ] = self.get_tag( tag_name )
         return tags
+
+    def is_empty( self ):
+        return len( self.tags() ) == 0
 
     def _assert_is_track_tag( self, tag_name ):
         if tag_name == "album_info":
