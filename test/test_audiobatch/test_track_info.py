@@ -11,14 +11,14 @@ multi_val_tags = [ "artists",
 
 single_val_tags = [ "title",
                     "track_number",
+                    "track_total",
+                    "disc_number",
                     "genre",
                     "release_date",
                     "isrc",
                     "album.title",
                     "album.release_date",
                     "album.isrc",
-                    "album.track_total",
-                    "album.disc_number",
                     "album.disc_total" ]
 
 class TestTrackInfo( unittest.TestCase ):

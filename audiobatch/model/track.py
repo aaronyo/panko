@@ -75,6 +75,8 @@ class TrackInfo( object ):
         self.artists = []
         self.title = None
         self.track_number = None
+        self.track_total = None
+        self.disc_number = None
         self.composers = []
         self.release_date = None
         self.genre = None
@@ -97,14 +99,6 @@ class TrackInfo( object ):
         info_obj, tag_name = self._which( tag_name )
         return info_obj.__dict__[ tag_name ]
 
-    def get_tag_unicode( self, tag_name ):
-        """ Unicode is standard for audio file tag encoding. """
-        val = self.get_tag( tag_name )
-        if type(val) == types.ListType:
-            return [unicode(x) for x in val]
-        else:
-            return unicode( val )
-        
     def set_tag( self, tag_name, tag_val ):
         info_obj, tag_name = self._which( tag_name )
         info_obj.__dict__[ tag_name ] = tag_val
@@ -143,7 +137,14 @@ class TrackInfo( object ):
         val = info_obj.__dict__[ tag_name ]
         return ( type(val) == types.ListType
                  or type(val) == types.DictType )
-                     
+    
+    @staticmethod
+    def is_int( tag_name ):
+        return tag_name in [ "track_number",
+                             "track_total",
+                             "disc_number",
+                             "album.disc_total" ]
+
     def _which( self, tag_name ):
         if tag_name.startswith("album."):
             return self.album_info, tag_name.split('.')[1]

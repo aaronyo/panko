@@ -7,8 +7,6 @@ class AlbumInfo( object ):
         self.title = None
         self.release_date = None
         self.isrc = None
-        self.track_total = None
-        self.disc_number = None
         self.disc_total = None
         # valid keys are described in the 'model.image' module
         self.images = {}

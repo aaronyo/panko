@@ -100,7 +100,7 @@ class TrackRepository( object ):
                 track_info,
                 audio_stream ):
         audio_file = audiofile.read( audio_stream.path )
-        audio_file.extend_track_info( track_info )
+        audio_file.update_track_info( track_info )
         audio_file.save()
         abs_track_path = os.path.join( library_dir, track_path )
         target_dir = os.path.dirname( abs_track_path )
@@ -118,7 +118,7 @@ class TrackRepository( object ):
 
         audio_file = self._get_audio_file( library_dir, track_path )
         if track_info != None:
-            audio_file.extend_track_info( track_info )
+            audio_file.update_track_info( track_info )
         if audio_stream != None:
             audio_file.set_audio_stream( audio_stream )
         audio_file.save()

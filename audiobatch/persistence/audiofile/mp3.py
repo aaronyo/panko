@@ -16,11 +16,11 @@ _TRACK_INFO_TO_ID3 = {
     "isrc"               : id3.TSRC,
     "title"              : id3.TIT2,
     "track_number"       : None, # requires custom handling
+    "track_total"        : None, # requires custom handling
+    "disc_number"        : None, # requires custom handling
     "album.title"        : id3.TALB,
     "album.artists"      : id3.TPE2,
-    "album.disc_number"  : None, # requires custom handling
     "album.disc_total"   : None, # requires custom handling
-    "album.track_total"  : None, # requires custom handling
 }
 
 _ID3_PIC_CODES = {
@@ -53,16 +53,16 @@ def _encode_TRCK_frame( track_number, track_total ):
 def _decode_TRCK_frame( frame ):
     vals = frame.text[0].split("/")
     if len(vals) == 1:
-        return vals[0], None
+        return int( vals[0] ), None
     else:
-        return vals[0], vals[1]
+        return int( vals[0] ), int( vals[1] )
 
 def _decode_TPOS_frame( frame ):
     vals = frame.text[0].split("/")
     if len(vals) == 1:
-        return vals[0], None
+        return int( vals[0] ), None
     else:
-        return vals[0], vals[1]
+        return int( vals[0] ), int( vals[1] )
 
 
 def recognized( path ):
@@ -94,7 +94,7 @@ class MP3File( AudioFile ):
     def clear_all( self ):
         self._mp3_obj.delete()
         
-    def extend_track_info( self, track_info ):
+    def update_track_info( self, track_info ):
         # id3 combines the number and total into a single field of
         # format: "number/total"
         disc_number = None
@@ -107,12 +107,12 @@ class MP3File( AudioFile ):
 
         for tag_name, id3_frame_class in _TRACK_INFO_TO_ID3.items():
             if track_info.has_tag( tag_name ):
-                tag_val = track_info.get_tag_unicode( tag_name )
+                tag_val = track_info.get_tag( tag_name )
                 if tag_name == "track_number":
                     track_number = tag_val
-                elif tag_name == "album.track_total":
+                elif tag_name == "track_total":
                     track_total = tag_val
-                elif tag_name == "album.disc_number":
+                elif tag_name == "disc_number":
                     disc_number = tag_val
                 elif tag_name == "album.disc_total":
                     disc_total = tag_val
@@ -161,8 +161,8 @@ class MP3File( AudioFile ):
             tpos = mp3_obj[ id3.TPOS.__name__ ]        
             disc_number, disc_total = _decode_TPOS_frame( tpos )
         track_info.set_tag( "track_number", track_number )
-        track_info.set_tag( "album.track_total", track_total )
-        track_info.set_tag( "album.disc_number", disc_number )
+        track_info.set_tag( "track_total", track_total )
+        track_info.set_tag( "disc_number", disc_number )
         track_info.set_tag( "album.disc_total", disc_total )
 
         #FIXME: read embedded images

@@ -1,5 +1,6 @@
 import os.path
 import shutil
+import types
 
 from audiobatch.model import image 
 
@@ -36,9 +37,9 @@ class AudioFile( object ):
     def get_track_info( self ):
         raise NotImplementedError
 
-    def extend_track_info( self, track_info ):
-        """ Similar to 'extend' on python collections.  Old values that
-        are not given a new value will remain."""
+    def update_track_info( self, track_info ):
+        """ Similar to 'update' on python dictionaries.  Existing values
+        not given a new value will remain."""
         raise NotImplementedError
 
     def get_audio_stream( self ):
@@ -102,4 +103,11 @@ class AudioFile( object ):
         mutagen_obj.update( self._mutagen_obj.items() )
         mutagen_obj.save()
 
+    @staticmethod
+    def _unicode_all( val ):
+        if type(val) == types.ListType:
+            return [ unicode(x) for x in val ]
+        else:
+            return unicode( val )
+        
 

@@ -25,6 +25,8 @@ _MP4_TO_COMMON = {
     _SPECIAL      : "album.track_total",
     }
 
+_COMMON_TO_MP4 = dict( [ (v, k) for k, v in _MP4_TO_COMMON.items() ] )
+
 EXTENSIONS = ['m4a', 'mp4']
 
 # Logger's console output is broken for characters that do
@@ -70,6 +72,49 @@ class MP4File( AudioFile ):
             
 
 
+    def update_track_info( self, track_info ):
+        mp4_obj = self._mp4_obj
+        # mp4 combines the number and total into a single "atom"
+        # further, it doesn't seem to accept None -- 0 must be provided
+        # FIXME: does 0 do the right thing (act as null) according to iTunes
+        #        and the mp4 spec?
+        disc_number = 0
+        disc_total = 0
+        track_number = 0
+        track_total = 0
+
+        for tag_name, value in track_info.tags().items():
+            if tag_name == "track_number":
+                track_number = value
+            elif tag_name == "track_total":
+                track_total = value
+            elif tag_name == "disc_number":
+                disc_number = value
+            elif tag_name == "album.disc_total":
+                disc_total = value
+            elif tag_name == "album.images":
+                #FIXME: handle saving images to mp4
+                pass
+            else:
+                try:
+                    mp4_tag_name = _COMMON_TO_MP4[ tag_name ]
+                except KeyError:
+                    _LOGGER.error( "Can't write '%s' - MP4 mapping not found"
+                                   % tag_name )
+                # Mutagen seems to always read encoded tags into a last,
+                # but varies on wheter or not it handles non-list input
+                # appropriately, so we'll just always use a list
+                if track_info.is_multi_value( tag_name ):
+                    mp4_obj[ mp4_tag_name ] = value
+                else:
+                    mp4_obj[ mp4_tag_name ] = [value]
+        
+        if ( track_number != 0 or track_total != 0 ):
+            mp4_obj[ "trkn" ]= [ (track_number, track_total) ]
+        if ( disc_number != 0 or disc_total != 0 ):
+            mp4_obj[ "disk" ]= [ (disc_number, disc_total) ]            
+
+
     def get_track_info( self ):
         # FIXME: How are multi vals encoded?  Have seen artists sep by '/'.
         mp4_obj = self._mp4_obj
@@ -87,9 +132,6 @@ class MP4File( AudioFile ):
                 track_info.set_tag( "track_number", first_val[0] )
                 if first_val[1] != 0:
                     track_info.set_tag( "album.track_total", first_val[1] )
-            elif mp4_tag_name == "covr":
-                # FIXME: read embedded images
-                pass
             else:
                 try:
                     tag_name = _MP4_TO_COMMON[ mp4_tag_name ]            

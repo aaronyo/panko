@@ -41,10 +41,13 @@ class TestAudioFileTags( unittest.TestCase ):
     def test_save_tag__album_artists( self ):
         self._test_save_tag( "album.artists", ["john doe", "jane doe"] )
 
+    def test_save_tag__track_number( self ):
+        self._test_save_tag( "track_number", 1 )
+
     def _test_save_tag( self, tag_name, tag_val ):
         track_info = track.TrackInfo()
         track_info.set_tag( tag_name, tag_val )
-        self._audio_file.extend_track_info( track_info )
+        self._audio_file.update_track_info( track_info )
         self._audio_file.save()
         reloaded_af = audiofile.read( self._audio_file.path )
         reloaded_ti = reloaded_af.get_track_info()

@@ -15,7 +15,7 @@ t = track.TrackInfo()
 t.title = u"poo"
 t.artists = [u"### dude 1", u"### dude 2"]
 t.album_info.artists = [u"### lady 1", u"### lady 2"]
-m.extend_track_info( t )
+m.update_track_info( t )
 print t
 print "finish: ", m
 print ""
@@ -29,7 +29,7 @@ t = f.get_track_info()
 t.track_number = 9
 t.release_date = 2006
 
-f.extend_track_info( t )
+f.update_track_info( t )
 
 #print "FINAL TRACK_INFO: ", t
 #print "FINAL FLAC: ", f
@@ -78,7 +78,7 @@ print "flac's dimensions: ", fims[image.SUBJECT__ALBUM_COVER].get_dimensions()
 m = mp3.MP3File("/Users/aaronyo/temp/test.mp3")
 t = track.TrackInfo()
 t.album_info.images[image.SUBJECT__ALBUM_COVER] = ai_resize
-m.extend_track_info( t )
+m.update_track_info( t )
 m.save()
 
 print ""

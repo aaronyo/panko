@@ -14,10 +14,10 @@ _FLAC_TO_COMMON = {
     "ISRC"        : "isrc",
     "TITLE"       : "title",
     "TRACKNUMBER" : "track_number",
-    "TRACKTOTAL"  : "album.track_total",
+    "TRACKTOTAL"  : "track_total",
+    "DISCNUMBER"  : "disc_number",
     "ALBUM"       : "album.title",
     "ALBUMARTIST" : "album.artists",
-    "DISCNUMBER"  : "album.disc_number",
     "DISCTOTAL"   : "album.disc_total",
     }
 
@@ -25,7 +25,6 @@ _COMMON_TO_FLAC = dict( (value, key)
                         for key, value 
                         in _FLAC_TO_COMMON.iteritems()
                         )
-
 
 EXTENSIONS = ['flac']
 
@@ -59,7 +58,10 @@ class FLACFile( AudioFile ):
                 val = self._flac_obj[ flac_tag_name ]
                 # FLAC models all attributes as a list but TrackInfo does not
                 if not track_info.is_multi_value( tag_name ):
-                    track_info.set_tag( tag_name, val[0] )
+                    first_val = val[0]
+                    if track.TrackInfo.is_int( tag_name ):
+                        first_val = int( first_val )
+                    track_info.set_tag( tag_name, first_val )
                 else:
                     track_info.set_tag( tag_name, val )
 
@@ -67,7 +69,7 @@ class FLACFile( AudioFile ):
 
         return track_info
             
-    def extend_track_info( self, track_info ):
+    def update_track_info( self, track_info ):
         for tag_name, flac_tag_name in _COMMON_TO_FLAC.items():
             # Mutagen FLAC dictionary access is not symmetric.  It coverts
             # single elements to lists (since all vorbis comments are
@@ -76,7 +78,7 @@ class FLACFile( AudioFile ):
             #
             if track_info.has_tag( tag_name ):
                 self._flac_obj[ flac_tag_name ] = \
-                    track_info.get_tag_unicode( tag_name )
+                    AudioFile._unicode_all( track_info.get_tag( tag_name ) )
 
     def save( self ):
         self._flac_obj.save()
