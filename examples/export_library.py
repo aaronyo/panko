@@ -1,5 +1,5 @@
-"""
-An example for exporting a high quality audio library to compressed format.
+""""
+An example for exporting a library of high quality originals to compressed format.
 
 I use this script to export my mixed format "originals," which include
 FLAC, ALAC, M4P and MP3, to compressed mp3 files.  Files that already
@@ -7,11 +7,11 @@ meet the bitrate requirement (see 'convert_test') are considered compressed
 already and are simply copied to the export folder to prevent unnecessary
 quality loss.
 
-Subsequent runs perform differential updates and remove previously exported
-audio whose original has been deleted.
+Subsequent runs perform incremental updates including deletes if an original
+has been removed..
 
 The relative paths of the exported files will match the relative paths of the
-original files (minus extension, of course).
+original files, except for the extension which may change due to conversion..
 """
 
 import sys
