@@ -29,14 +29,26 @@ class TestAudioFileTags( unittest.TestCase ):
         track_info = self._audio_file.get_track_info()
         self.assertTrue( track_info.is_empty() )
 
-    def test_save__title( self ):
+    def test_save_tag__title( self ):
+        self._test_save_tag( "title", "foo title" )
+
+    def test_save_tag__genre( self ):
+        self._test_save_tag( "genre", "foo genre" )
+
+    def test_save_tag__artists( self ):
+        self._test_save_tag( "artists", ["john doe", "jane doe"] )
+
+    def test_save_tag__album_artists( self ):
+        self._test_save_tag( "album.artists", ["john doe", "jane doe"] )
+
+    def _test_save_tag( self, tag_name, tag_val ):
         track_info = track.TrackInfo()
-        track_info.title = "foo title"
+        track_info.set_tag( tag_name, tag_val )
         self._audio_file.extend_track_info( track_info )
         self._audio_file.save()
         reloaded_af = audiofile.read( self._audio_file.path )
         reloaded_ti = reloaded_af.get_track_info()
-        self.assertEqual( track_info.title, reloaded_ti.title )
+        self.assertEqual( tag_val, reloaded_ti.get_tag( tag_name ) )
 
 class TestMP4Tags( TestAudioFileTags ):
 
