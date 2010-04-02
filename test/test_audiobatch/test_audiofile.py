@@ -44,14 +44,26 @@ class TestAudioFileTags( unittest.TestCase ):
     def test_save_tag__track_number( self ):
         self._test_save_tag( "track_number", 1 )
 
+    def test_save_tag__track_total( self ):
+        self._test_save_tag( "track_total", 10 )
+
+    def test_save_tag__disc_number( self ):
+        self._test_save_tag( "disc_number", 2 )
+
+    def test_save_tag__disc_number( self ):
+        self._test_save_tag( "album.disc_total", 2 )
+
     def _test_save_tag( self, tag_name, tag_val ):
+        self._test_save_tags( { tag_name : tag_val } )
+
+    def _test_save_tags( self, tags ):
         track_info = track.TrackInfo()
-        track_info.set_tag( tag_name, tag_val )
+        track_info.update_tags( tags )
         self._audio_file.update_track_info( track_info )
         self._audio_file.save()
         reloaded_af = audiofile.read( self._audio_file.path )
         reloaded_ti = reloaded_af.get_track_info()
-        self.assertEqual( tag_val, reloaded_ti.get_tag( tag_name ) )
+        self.assertEqual( tags, reloaded_ti.tags() )
 
 class TestMP4Tags( TestAudioFileTags ):
 
