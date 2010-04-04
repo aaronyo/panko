@@ -39,19 +39,42 @@ class TestTrackInfo( unittest.TestCase ):
     def test_has_tag__empty_multi_val( self ):
         ti = TrackInfo()
         for tag_name in multi_val_tags:
-            self.assertFalse( ti.has_tag( tag_name ),
+            self.assertFalse( tag_name in ti,
                               "tag '%s' should not exist" % tag_name )
 
     def test_has_tag__empty_single_val( self ):
         ti = TrackInfo()
         for tag_name in single_val_tags:
-            self.assertFalse( ti.has_tag( tag_name ),
+            self.assertFalse( tag_name in ti,
                               "tag '%s' should not exist" % tag_name )
 
-    def test_tag_propogates__artists( self ):
+    def test_field_propogates__artists( self ):
         ti = TrackInfo()
         ti.artists = ["John Doe"]
-        self.assertEquals( ti.artists, ti.get_tag("artists") )
+        self.assertEquals( ["John Doe"], ti["artists"] )
+        self.assertTrue( "artists" in ti )
+        self.assertEquals( ti.artists, ti["artists"] )
+
+    def test_dict_propogates__artists( self ):
+        ti = TrackInfo()
+        ti["artists"] = ["John Doe"]
+        self.assertEquals( ["John Doe"], ti.artists )
+        self.assertTrue( "artists" in ti )
+        self.assertEquals( ti["artists"], ti.artists )
+
+    def test_tag_propogates__album_artists( self ):
+        ti = TrackInfo()
+        ti.album_info.artists = ["John Doe"]
+        self.assertEquals( ["John Doe"], ti["album.artists"] )
+        self.assertTrue( "album.artists" in ti )
+        self.assertEquals( ti.album_info.artists, ti["album.artists"] )
+
+    def test_dict_propogates__album_artists( self ):
+        ti = TrackInfo()
+        ti["album.artists"] = ["John Doe"]
+        self.assertEquals( ["John Doe"], ti.album_info.artists )
+        self.assertTrue( "album.artists" in ti )
+        self.assertEquals( ti["album.artists"], ti.album_info.artists )
 
 def suite():
     return unittest.TestLoader().loadTestsFromTestCase( TestTrackInfo )

@@ -51,7 +51,7 @@ class FLACFile( AudioFile ):
 
     def get_track_info( self ):
         track_info = track.TrackInfo()
-        track_info.album_info.images = self._find_folder_images()
+        self._add_folder_images( track_info )
 
         for tag_name, flac_tag_name in _COMMON_TO_FLAC.items():
             if flac_tag_name in self._flac_obj:
@@ -59,11 +59,11 @@ class FLACFile( AudioFile ):
                 # FLAC models all attributes as a list but TrackInfo does not
                 if not track_info.is_multi_value( tag_name ):
                     first_val = val[0]
-                    if track.TrackInfo.is_int( tag_name ):
+                    if track_info.is_int( tag_name ):
                         first_val = int( first_val )
-                    track_info.set_tag( tag_name, first_val )
+                    track_info[tag_name] = first_val
                 else:
-                    track_info.set_tag( tag_name, val )
+                    track_info[tag_name] = val
 
         #FIXME: read embedded images
 
@@ -76,9 +76,9 @@ class FLACFile( AudioFile ):
             # lists).  Since it handles this conversion for us, we don't need
             # the same special handling as we did when reading the track_info
             #
-            if track_info.has_tag( tag_name ):
+            if tag_name in track_info:
                 self._flac_obj[ flac_tag_name ] = \
-                    AudioFile._unicode_all( track_info.get_tag( tag_name ) )
+                    AudioFile._unicode_all( track_info[ tag_name ] )
 
     def save( self ):
         self._flac_obj.save()

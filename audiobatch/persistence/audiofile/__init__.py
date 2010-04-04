@@ -87,14 +87,13 @@ class AudioFile( object ):
         else:
             self._mutagen_obj.save()
 
-    def _find_folder_images( self ):
+    def _add_folder_images( self, track_info ):
         """ For now, only looks for a "cover.jpg" """
         containing_folder = os.path.dirname( self.path )
         cover_path = os.path.join( containing_folder, "cover.jpg" )
         if os.path.isfile( cover_path ):
-            return {image.SUBJECT__ALBUM_COVER: image.makeImage( cover_path ) }
-        else:
-            return {}
+            track_info.album_info.images = \
+                {image.SUBJECT__ALBUM_COVER: image.makeImage( cover_path ) }
 
     def _copy_tags_to( self, target_path ):
         """ Copy tags to a file of the same format as this AudioFile. """

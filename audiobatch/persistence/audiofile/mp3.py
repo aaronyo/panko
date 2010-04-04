@@ -29,40 +29,39 @@ _ID3_PIC_CODES = {
 
 EXTENSIONS = ["mp3"]
 
-def _encode_TPOS_frame( disc_number, disc_total ):
-    if disc_number == None:
+def _encode_pos_str( part, total ):
+    if part == None and total == None:
         return None
-    elif disc_total == None:
-        frame_text = u"%s" % disc_number
     else:
-        frame_text = u"%s/%s" % ( disc_number, disc_total )
-
-    return id3.TPOS( encoding=3, text=frame_text )
+        part = str( part ) if part != None else "" 
+        total =  "/" + str( total ) if total != None else ""
+        return u"%s%s" % ( part, total )
+    
+def _encode_TPOS_frame( disc_number, disc_total ):
+    frame_text = _encode_pos_str( disc_number, disc_total )
+    return id3.TPOS( encoding=3, text=frame_text ) if frame_text else None
 
 
 def _encode_TRCK_frame( track_number, track_total ):
-    if track_number == None:
-        return None
-    elif track_total == None:
-        frame_text = u"%s" % track_number
-    else:
-        frame_text = u"%s/%s" % ( track_number, track_total )
+    frame_text = _encode_pos_str( track_number, track_total )
+    return id3.TRCK( encoding=3, text=frame_text ) if frame_text else None
 
-    return id3.TRCK( encoding=3, text=frame_text )
+def _blank_safe_int( str ):
+    return int( str ) if str != '' else None
 
 def _decode_TRCK_frame( frame ):
     vals = frame.text[0].split("/")
     if len(vals) == 1:
-        return int( vals[0] ), None
+        return _blank_safe_int( vals[0] ), None
     else:
-        return int( vals[0] ), int( vals[1] )
+        return _blank_safe_int( vals[0] ), _blank_safe_int( vals[1] )
 
 def _decode_TPOS_frame( frame ):
     vals = frame.text[0].split("/")
     if len(vals) == 1:
-        return int( vals[0] ), None
+        return _blank_safe_int( vals[0] ), None
     else:
-        return int( vals[0] ), int( vals[1] )
+        return _blank_safe_int( vals[0] ), _blank_safe_int( vals[1] )
 
 
 def recognized( path ):
@@ -106,8 +105,8 @@ class MP3File( AudioFile ):
             self._mp3_obj.add_tags()
 
         for tag_name, id3_frame_class in _TRACK_INFO_TO_ID3.items():
-            if track_info.has_tag( tag_name ):
-                tag_val = track_info.get_tag( tag_name )
+            if tag_name in track_info:
+                tag_val = track_info[ tag_name ]
                 if tag_name == "track_number":
                     track_number = tag_val
                 elif tag_name == "track_total":
@@ -133,7 +132,7 @@ class MP3File( AudioFile ):
     def get_track_info( self ):
         mp3_obj = self._mp3_obj
         track_info = track.TrackInfo()
-        track_info.album_info.images = self._find_folder_images()
+        self._add_folder_images( track_info )
 
         for tag_name, id3_frame_class in _TRACK_INFO_TO_ID3.items():
             if ( id3_frame_class != None
@@ -143,10 +142,9 @@ class MP3File( AudioFile ):
                     # important to call unicode() as some values are
                     # not actually strings -- only string like -- and lack
                     # important methods like the default string cmp()
-                    track_info.set_tag( tag_name, unicode(val.text[0]) )
+                    track_info[ tag_name ] = unicode(val.text[0])
                 else:
-                    track_info.set_tag( tag_name,
-                                        [ unicode(x) for x in val.text ] )
+                    track_info[ tag_name ] = [ unicode(x) for x in val.text ]
 
         # id3 combines the number and total into a single field of
         # format: "number/total"
@@ -160,10 +158,10 @@ class MP3File( AudioFile ):
         if id3.TPOS.__name__ in mp3_obj:
             tpos = mp3_obj[ id3.TPOS.__name__ ]        
             disc_number, disc_total = _decode_TPOS_frame( tpos )
-        track_info.set_tag( "track_number", track_number )
-        track_info.set_tag( "track_total", track_total )
-        track_info.set_tag( "disc_number", disc_number )
-        track_info.set_tag( "album.disc_total", disc_total )
+        track_info[ "track_number"] = track_number
+        track_info[ "track_total" ] = track_total
+        track_info[ "disc_number" ] = disc_number
+        track_info[ "album.disc_total" ] = disc_total 
 
         #FIXME: read embedded images
 

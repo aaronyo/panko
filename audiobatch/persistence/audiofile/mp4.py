@@ -83,7 +83,7 @@ class MP4File( AudioFile ):
         track_number = 0
         track_total = 0
 
-        for tag_name, value in track_info.tags().items():
+        for tag_name, value in track_info.items():
             if tag_name == "track_number":
                 track_number = value
             elif tag_name == "track_total":
@@ -119,19 +119,21 @@ class MP4File( AudioFile ):
         # FIXME: How are multi vals encoded?  Have seen artists sep by '/'.
         mp4_obj = self._mp4_obj
         track_info = track.TrackInfo()
-        track_info.album_info.images = self._find_folder_images()
+        self._add_folder_images( track_info )
         
         for mp4_tag_name, value in mp4_obj.items():
             if mp4_tag_name == "disk":
                 first_val = value[0]
-                track_info.set_tag( "album.disc_number", first_val[0] )
+                if first_val[0] != 0:
+                    track_info[ "disc_number" ] = first_val[0]
                 if first_val[1] != 0:
-                    track_info.set_tag( "album.disc_total", first_val[1] )
+                    track_info[ "album.disc_total" ] = first_val[1]
             elif mp4_tag_name == "trkn":
                 first_val = value[0]
-                track_info.set_tag( "track_number", first_val[0] )
+                if first_val[0] != 0:
+                    track_info[ "track_number" ] = first_val[0]
                 if first_val[1] != 0:
-                    track_info.set_tag( "album.track_total", first_val[1] )
+                    track_info[ "track_total" ] = first_val[1]
             else:
                 try:
                     tag_name = _MP4_TO_COMMON[ mp4_tag_name ]            
@@ -143,9 +145,8 @@ class MP4File( AudioFile ):
                     # important to call unicode() as some values are
                     # not actually strings -- only string like -- and lack
                     # important methods like the default string cmp()
-                    track_info.set_tag( tag_name, unicode(value[0]) )
+                    track_info[ tag_name ] = unicode(value[0])
                 else:
-                    track_info.set_tag( tag_name,
-                                        [ unicode(x) for x in value ] )
+                    track_info[ tag_name ] = [ unicode(x) for x in value ]
 
         return track_info
