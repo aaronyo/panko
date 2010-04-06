@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger()
 
 _FLAC_TO_COMMON = {
     "ARTIST"      : "artists",
-#   FIXME: "PERFORMER"   : ,
+    "COMPOSER"    : "composers",
     "GENRE"       : "genres",
     "ISRC"        : "isrc",
     "TITLE"       : "title",
