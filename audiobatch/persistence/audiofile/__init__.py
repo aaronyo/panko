@@ -1,8 +1,11 @@
 import os.path
 import shutil
 import types
+import logging
 
-from audiobatch.model import image 
+from audiobatch.model import image, track, album
+
+_LOGGER = logging.getLogger()
 
 def read( path ):
     from audiobatch.persistence.audiofile import flac, mp3, mp4
@@ -34,12 +37,28 @@ class AudioFile( object ):
     def clear_track_info( self, track_info ):
         raise NotImplementedError
 
-    def get_track_info( self ):
+    def get_info( self ):
+        album_info, track_info = self._get_info()
+        self._add_folder_images( album_info )
+        return album_info, track_info
+
+    def _get_info( self ):
         raise NotImplementedError
 
-    def update_track_info( self, track_info ):
+    def update_info( self, info ):
         """ Similar to 'update' on python dictionaries.  Existing values
         not given a new value will remain."""
+        if isinstance( info, track.TrackInfo ):
+            self._update_track_info( info )
+        elif isinstance( info, album.AlbumInfo ):
+            self._update_album_info( info )
+        else:
+            raise TypeError( info )
+
+    def _update_track_info( self, track_info ):
+        raise NotImplementedError
+
+    def _update_album_info( self, track_info ):
         raise NotImplementedError
 
     def get_audio_stream( self ):
@@ -48,9 +67,9 @@ class AudioFile( object ):
     def set_audio_stream( self, audio_stream ):
         """ Replaces the underlying audio file with a new version where
         all tags are copied over and only the stream has changed. """
-        raise NotImplementedError
+        self._updated_audio_stream = audio_stream
 
-    def save( self ):        
+    def save( self ):
         if (     self._updated_audio_stream != None
              and self._updated_audio_stream.path != self.path ):
             stream = self._updated_audio_stream
@@ -87,12 +106,16 @@ class AudioFile( object ):
         else:
             self._mutagen_obj.save()
 
-    def _add_folder_images( self, track_info ):
+    def _add_folder_images( self, album_info ):
         """ For now, only looks for a "cover.jpg" """
         containing_folder = os.path.dirname( self.path )
         cover_path = os.path.join( containing_folder, "cover.jpg" )
         if os.path.isfile( cover_path ):
-            track_info.album_info.images = \
+            if image.SUBJECT__ALBUM_COVER in album_info.images:
+                _LOGGER.warn( "Reading folder image instead of already"
+                              + " found image: %s, %s"
+                              % ( image.SUBJECT__ALBUM_COVER, self.path ) )
+            album_info.images = \
                 {image.SUBJECT__ALBUM_COVER: image.makeImage( cover_path ) }
 
     def _copy_tags_to( self, target_path ):

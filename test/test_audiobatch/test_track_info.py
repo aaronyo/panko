@@ -4,22 +4,22 @@ from audiobatch.model.track import TrackInfo
 
 
 multi_val_tags = [ "artists",
-                   "composers",
-                   "album.artists",
-                   "album.composers",
-                   "album.images" ]
+                   "genres",
+                   "composers" ]
+#                   "album.artists",
+#                   "album.composers",
+#                   "album.images" ]
 
 single_val_tags = [ "title",
                     "track_number",
                     "track_total",
                     "disc_number",
-                    "genre",
                     "release_date",
-                    "isrc",
-                    "album.title",
-                    "album.release_date",
-                    "album.isrc",
-                    "album.disc_total" ]
+                    "isrc" ]
+#                    "album.title",
+#                    "album.release_date",
+#                    "album.isrc",
+#                    "album.disc_total" ]
 
 class TestTrackInfo( unittest.TestCase ):
 
@@ -62,19 +62,25 @@ class TestTrackInfo( unittest.TestCase ):
         self.assertTrue( "artists" in ti )
         self.assertEquals( ti["artists"], ti.artists )
 
-    def test_tag_propogates__album_artists( self ):
-        ti = TrackInfo()
-        ti.album_info.artists = ["John Doe"]
-        self.assertEquals( ["John Doe"], ti["album.artists"] )
-        self.assertTrue( "album.artists" in ti )
-        self.assertEquals( ti.album_info.artists, ti["album.artists"] )
+    def test_construct__multiple_fields( self ):
+        ti = TrackInfo( { "artists": ["Big Bird"],
+                          "genres": ["Childrens", "Rock"] } )
+        self.assertEquals( ["Big Bird"], ti.artists )
+        self.assertEquals( ["Childrens", "Rock"], ti.genres )
 
-    def test_dict_propogates__album_artists( self ):
-        ti = TrackInfo()
-        ti["album.artists"] = ["John Doe"]
-        self.assertEquals( ["John Doe"], ti.album_info.artists )
-        self.assertTrue( "album.artists" in ti )
-        self.assertEquals( ti["album.artists"], ti.album_info.artists )
+#    def test_tag_propogates__album_artists( self ):
+#        ti = TrackInfo()
+#        ti.album_info.artists = ["John Doe"]
+#        self.assertEquals( ["John Doe"], ti["album.artists"] )
+#        self.assertTrue( "album.artists" in ti )
+#        self.assertEquals( ti.album_info.artists, ti["album.artists"] )
+
+#    def test_dict_propogates__album_artists( self ):
+#        ti = TrackInfo()
+#        ti["album.artists"] = ["John Doe"]
+#        self.assertEquals( ["John Doe"], ti.album_info.artists )
+#        self.assertTrue( "album.artists" in ti )
+#        self.assertEquals( ti["album.artists"], ti.album_info.artists )
 
 def suite():
     return unittest.TestLoader().loadTestsFromTestCase( TestTrackInfo )

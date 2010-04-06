@@ -4,24 +4,27 @@ import StringIO
 import shutil
 
 from audiobatch.persistence.audiofile import AudioFile
-from audiobatch.model import audiostream, image, track, format
+from audiobatch.model import audiostream, image, track, album, format
 
 _LOGGER = logging.getLogger()
 
-_TRACK_INFO_TO_ID3 = {
+_COMMON_TO_ID3 = {
     "artists"            : id3.TPE1,
     "composers"          : id3.TCOM,
-    "release_date"       : id3.TDRC,
-    "genre"              : id3.TCON,
+    "genres"             : id3.TCON,
     "isrc"               : id3.TSRC,
     "title"              : id3.TIT2,
     "track_number"       : None, # requires custom handling
     "track_total"        : None, # requires custom handling
     "disc_number"        : None, # requires custom handling
+    "disc_total"         : None, # requires custom handling
     "album.title"        : id3.TALB,
     "album.artists"      : id3.TPE2,
-    "album.disc_total"   : None, # requires custom handling
+    "album.release_date" : id3.TDRC
 }
+
+_ID3_TO_COMMON = dict( (v.__name__ if v else None, k) 
+                       for k, v in _COMMON_TO_ID3.iteritems() )
 
 _ID3_PIC_CODES = {
     image.SUBJECT__ALBUM_COVER : 3
@@ -87,13 +90,32 @@ class MP3File( AudioFile ):
         else:
             return self._updated_audio_stream
 
-    def set_audio_stream( self, audio_stream ):
-        self._updated_audio_stream = audio_stream
-
     def clear_all( self ):
         self._mp3_obj.delete()
         
-    def update_track_info( self, track_info ):
+    def _update_album_info( self, album_info ):
+        if self._mp3_obj.tags == None:
+            self._mp3_obj.add_tags()
+
+        self._add_images( album_info.images )
+        for field_name, value in album_info.items():
+            if field_name == "images":
+                continue # handled in _add_images call above
+            if field_name == "release_date":
+                value = str( value )
+            lookup_name = "album." + field_name
+            if lookup_name in _COMMON_TO_ID3:
+                id3_frame_class = _COMMON_TO_ID3[ lookup_name ]
+                frame = id3_frame_class( encoding=3, text=value )
+                self._mp3_obj.tags.add( frame )
+            else: 
+                _LOGGER.error( "Can't write '%s' - ID3 mapping not found"
+                               % lookup_name )
+
+    def _update_track_info( self, track_info ):
+        if self._mp3_obj.tags == None:
+            self._mp3_obj.add_tags()
+
         # id3 combines the number and total into a single field of
         # format: "number/total"
         disc_number = None
@@ -101,23 +123,23 @@ class MP3File( AudioFile ):
         track_number = None
         track_total = None
 
-        if self._mp3_obj.tags == None:
-            self._mp3_obj.add_tags()
-
-        for tag_name, id3_frame_class in _TRACK_INFO_TO_ID3.items():
-            if tag_name in track_info:
-                tag_val = track_info[ tag_name ]
-                if tag_name == "track_number":
-                    track_number = tag_val
-                elif tag_name == "track_total":
-                    track_total = tag_val
-                elif tag_name == "disc_number":
-                    disc_number = tag_val
-                elif tag_name == "album.disc_total":
-                    disc_total = tag_val
+        for field_name, value in track_info.items():
+            if field_name in _COMMON_TO_ID3:
+                if field_name == "track_number":
+                    track_number = value
+                elif field_name == "track_total":
+                    track_total = value
+                elif field_name == "disc_number":
+                    disc_number = value
+                elif field_name == "disc_total":
+                    disc_total = value
                 else:
-                    frame = id3_frame_class( encoding=3, text=tag_val )
+                    id3_frame_class = _COMMON_TO_ID3[ field_name ]
+                    frame = id3_frame_class( encoding=3, text=value )
                     self._mp3_obj.tags.add( frame )
+            else: 
+                _LOGGER.error( "Can't write '%s' - ID3 mapping not found"
+                               % field_name )
             
         tpos_frame = _encode_TPOS_frame( disc_number, disc_total )
         if tpos_frame != None:
@@ -127,45 +149,52 @@ class MP3File( AudioFile ):
         if trck_frame != None:
             self._mp3_obj.tags.add( trck_frame )
 
-        self._add_images( track_info.album_info.images )
 
-    def get_track_info( self ):
-        mp3_obj = self._mp3_obj
-        track_info = track.TrackInfo()
-        self._add_folder_images( track_info )
-
-        for tag_name, id3_frame_class in _TRACK_INFO_TO_ID3.items():
-            if ( id3_frame_class != None
-                 and mp3_obj.has_key( id3_frame_class.__name__ ) ):
-                val = mp3_obj[ id3_frame_class.__name__ ]
-                if not track_info.is_multi_value( tag_name ):
+    def _get_info( self ):
+        def _update_field( info, field_name, mp3_value ):
+            if info.is_multi_value( field_name ):
+                info[ field_name ] = [ unicode(x) for x in mp3_value.text ]
+            else:
                     # important to call unicode() as some values are
                     # not actually strings -- only string like -- and lack
                     # important methods like the default string cmp()
-                    track_info[ tag_name ] = unicode(val.text[0])
-                else:
-                    track_info[ tag_name ] = [ unicode(x) for x in val.text ]
+                info[ field_name ] = unicode( mp3_value.text[0] )
 
-        # id3 combines the number and total into a single field of
-        # format: "number/total"
+        album_info = album.AlbumInfo()
+        track_info = track.TrackInfo()
+
+        mp3_obj = self._mp3_obj
+
         disc_number = None
         disc_total = None
         track_number = None
         track_total = None
-        if id3.TRCK.__name__ in mp3_obj:
-            trck = mp3_obj[ id3.TRCK.__name__ ]
-            track_number, track_total = _decode_TRCK_frame( trck )
-        if id3.TPOS.__name__ in mp3_obj:
-            tpos = mp3_obj[ id3.TPOS.__name__ ]        
-            disc_number, disc_total = _decode_TPOS_frame( tpos )
+
+        for tag_name, value in mp3_obj.items():
+            if tag_name in _ID3_TO_COMMON:
+                field_name = _ID3_TO_COMMON [ tag_name ]
+                if field_name.startswith("album."):
+                    field_name = field_name[6:]
+                    _update_field( album_info, field_name, value )
+                else:
+                    _update_field( track_info, field_name, value )
+            # id3 combines the number and total into a single field of
+            # format: "number/total"
+            elif tag_name == id3.TRCK.__name__:
+                track_number, track_total = _decode_TRCK_frame( value )
+            elif tag_name == id3.TPOS.__name__:
+                disc_number, disc_total = _decode_TPOS_frame( value )
+            else:
+                _LOGGER.debug( "Can't read MP3 tag "
+                               + "'%s' - common mapping not found"
+                               % tag_name )
+
         track_info[ "track_number"] = track_number
         track_info[ "track_total" ] = track_total
         track_info[ "disc_number" ] = disc_number
-        track_info[ "album.disc_total" ] = disc_total 
+        track_info[ "disc_total" ] = disc_total 
 
-        #FIXME: read embedded images
-
-        return track_info
+        return album_info, track_info
 
     def _add_images( self, images ):
         for subject, img in images.items():

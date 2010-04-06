@@ -2,29 +2,30 @@ import logging
 import mutagen.flac
 from audiobatch.persistence.audiofile import AudioFile
 
-from audiobatch.model import track, audiostream, format
+from audiobatch.model import track, album, audiostream, format
 
 _LOGGER = logging.getLogger()
+
+
+# classical:
+# a
 
 _FLAC_TO_COMMON = {
     "ARTIST"      : "artists",
 #   FIXME: "PERFORMER"   : ,
-    "DATE"        : "release_date",
-    "GENRE"       : "genre",
+    "GENRE"       : "genres",
     "ISRC"        : "isrc",
     "TITLE"       : "title",
     "TRACKNUMBER" : "track_number",
     "TRACKTOTAL"  : "track_total",
     "DISCNUMBER"  : "disc_number",
+    "DISCTOTAL"   : "disc_total",
     "ALBUM"       : "album.title",
     "ALBUMARTIST" : "album.artists",
-    "DISCTOTAL"   : "album.disc_total",
+    "DATE"        : "album.release_date",
     }
 
-_COMMON_TO_FLAC = dict( (value, key) 
-                        for key, value 
-                        in _FLAC_TO_COMMON.iteritems()
-                        )
+_COMMON_TO_FLAC = dict( (v, k) for k, v in _FLAC_TO_COMMON.iteritems() )
 
 EXTENSIONS = ['flac']
 
@@ -49,36 +50,65 @@ class FLACFile( AudioFile ):
                                         format.FLAC_STREAM,
                                         self.path )
 
-    def get_track_info( self ):
+    def _get_info( self ):
+
+        def _update_field( info, field_name, flac_value ):
+            if info.is_multi_value( field_name ):
+                info[field_name] = flac_value
+            else:
+                first_val = flac_value[0]
+                if info.is_int( field_name ):
+                    first_val = int( first_val )
+                info[field_name] = first_val
+
+        album_info = album.AlbumInfo()
         track_info = track.TrackInfo()
-        self._add_folder_images( track_info )
 
-        for tag_name, flac_tag_name in _COMMON_TO_FLAC.items():
-            if flac_tag_name in self._flac_obj:
-                val = self._flac_obj[ flac_tag_name ]
-                # FLAC models all attributes as a list but TrackInfo does not
-                if not track_info.is_multi_value( tag_name ):
-                    first_val = val[0]
-                    if track_info.is_int( tag_name ):
-                        first_val = int( first_val )
-                    track_info[tag_name] = first_val
+        flac_obj = self._flac_obj
+
+        for flac_tag_name, value in flac_obj.items():
+            flac_tag_name = flac_tag_name.upper()
+            if flac_tag_name in _FLAC_TO_COMMON:
+                field_name = _FLAC_TO_COMMON[ flac_tag_name ]
+                val = flac_obj[ flac_tag_name ]
+                if field_name.startswith("album."):
+                    field_name = field_name[6:]
+                    _update_field( album_info, field_name, val )
                 else:
-                    track_info[tag_name] = val
+                    _update_field( track_info, field_name, val )
+            else:                
+                _LOGGER.debug( "Can't read FLAC tag "
+                               + "'%s' - common mapping not found"
+                               % flac_tag_name )
 
-        #FIXME: read embedded images
+        return album_info, track_info
 
-        return track_info
             
-    def update_track_info( self, track_info ):
-        for tag_name, flac_tag_name in _COMMON_TO_FLAC.items():
-            # Mutagen FLAC dictionary access is not symmetric.  It coverts
+    def _update_track_info( self, track_info ):
+        for field_name, value in track_info.items():
+            # Mutagen FLAC dictionary access coverts
             # single elements to lists (since all vorbis comments are
             # lists).  Since it handles this conversion for us, we don't need
             # the same special handling as we did when reading the track_info
-            #
-            if tag_name in track_info:
-                self._flac_obj[ flac_tag_name ] = \
-                    AudioFile._unicode_all( track_info[ tag_name ] )
+            if field_name == "images":
+                #FIXME: handle saving embedded images in FLAC
+                continue
+            if field_name in _COMMON_TO_FLAC:
+                self._flac_obj[ _COMMON_TO_FLAC[ field_name ] ]= \
+                    AudioFile._unicode_all( track_info[ field_name ] )
+            else:
+                _LOGGER.error( "Can't write '%s' - FLAC mapping not found"
+                               % field_name )
+                
+    def _update_album_info( self, album_info ):
+        for field_name, value in album_info.items():
+            lookup_name = "album." + field_name
+            if lookup_name in _COMMON_TO_FLAC:
+                self._flac_obj[ _COMMON_TO_FLAC[ lookup_name ] ]= \
+                    AudioFile._unicode_all( album_info[ field_name ] )
+            else:
+                _LOGGER.error( "Can't write '%s' - FLAC mapping not found"
+                               % lookup_name )
 
     def save( self ):
         self._flac_obj.save()
