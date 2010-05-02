@@ -5,18 +5,18 @@ from types import ListType, DictType, IntType
 from copy import deepcopy
 import types
 
-from audiobatch.model import _info
+from audiobatch.model import _info, entity
 
 
 def extless_compare( track1, track2 ):    
     return cmp( track1.extless_relative_path, track2.extless_relative_path )
 
 
-class Track( object ):
+class Track( object, entity.Entity ):
     """ An implmentation of a 'Track' that loads content lazily. """
-    def __init__( self, mod_time, library_dir, relative_path ):
+    def __init__( self, mod_time, base_dir, relative_path ):
         self.mod_time = mod_time
-        self.library_dir = library_dir
+        self.base_dir = base_dir
         self.relative_path = relative_path
 
     def get_track_info( self ):
@@ -24,6 +24,16 @@ class Track( object ):
 
     def get_audio_stream( self ):
         raise NotImplementedError()
+
+    def set_track_info( self, track_info ):
+        raise NotImplementedError()
+
+    def set_audio_stream( self, track_info ):
+        raise NotImplementedError()
+
+    @property
+    def absolute_path( self ):
+        return os.path.join( self.base_dir, self.relative_path )
 
     @property
     def extless_relative_path( self ):
@@ -35,11 +45,41 @@ class Track( object ):
         _, ext = os.path.splitext( self.relative_path )
         return ext
 
+    def id( self ):
+        return self.absolute_path
+
+    def __eq__( self, other ):
+        return ( self.base_dir == other.base_dir
+                 and self.relative_path == other.relative_path )
+
+    def __ne__( self, other ):
+        return not self.__eq__( other )
+
+
+class DTOTrack( Track ):
+    """ An implmentation of a 'Track' that loads content lazily. """
+    def __init__( self, mod_time, base_dir, relative_path ):
+        Track.__init__( self, mod_time, base_dir, relative_path )
+        self._track_info = None
+        self._audio_stream = None
+
+    def get_track_info( self ):
+        return self._track_info
+
+    def get_audio_stream( self ):
+        return self._audio_stream
+
+    def set_track_info( self, track_info ):
+         self._track_info = track_info
+
+    def set_audio_stream( self, audio_stream ):
+        self._audio_stream = audio_stream
+
 
 class LazyTrack( Track ):
     """ An implmentation of a 'Track' that loads content lazily. """
-    def __init__( self, mod_time, library_dir, relative_path, track_repo ):
-        Track.__init__( self, mod_time, library_dir, relative_path )
+    def __init__( self, mod_time, base_dir, relative_path, track_repo ):
+        Track.__init__( self, mod_time, base_dir, relative_path )
         self._track_repo = track_repo
         self._track_info = None
         self._audio_stream = None
@@ -47,14 +87,14 @@ class LazyTrack( Track ):
     def get_track_info( self ):
         if self._track_info == None:
             self._track_info = \
-                self._track_repo.get_track_info( self.library_dir,
+                self._track_repo.get_track_info( self.base_dir,
                                                  self.relative_path)
         return deepcopy( self._track_info )
 
     def get_audio_stream( self ):
         if self._audio_stream == None:
             self._audio_stream = \
-                self._track_repo.get_audio_stream( self.library_dir,
+                self._track_repo.get_audio_stream( self.base_dir,
                                                    self.relative_path)
         # FIXME: use a flyweight for the actual stream/path within an
         # audio stream.  If a path gets moved, we want all existing

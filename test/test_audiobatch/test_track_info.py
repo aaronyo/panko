@@ -6,20 +6,13 @@ from audiobatch.model.track import TrackInfo
 multi_val_tags = [ "artists",
                    "genres",
                    "composers" ]
-#                   "album.artists",
-#                   "album.composers",
-#                   "album.images" ]
 
 single_val_tags = [ "title",
                     "track_number",
                     "track_total",
                     "disc_number",
-                    "release_date",
+                    "disc_total",
                     "isrc" ]
-#                    "album.title",
-#                    "album.release_date",
-#                    "album.isrc",
-#                    "album.disc_total" ]
 
 class TestTrackInfo( unittest.TestCase ):
 
@@ -68,19 +61,21 @@ class TestTrackInfo( unittest.TestCase ):
         self.assertEquals( ["Big Bird"], ti.artists )
         self.assertEquals( ["Childrens", "Rock"], ti.genres )
 
-#    def test_tag_propogates__album_artists( self ):
-#        ti = TrackInfo()
-#        ti.album_info.artists = ["John Doe"]
-#        self.assertEquals( ["John Doe"], ti["album.artists"] )
-#        self.assertTrue( "album.artists" in ti )
-#        self.assertEquals( ti.album_info.artists, ti["album.artists"] )
+    def test_dict_eq__symmetric( self ):
+        d = { "artists": ["Big Bird"],
+              "genres": ["Childrens", "Rock"] }
+        ti = TrackInfo( d )
+        self.assertEquals( ti, d )
+        self.assertEquals( d, ti )
 
-#    def test_dict_propogates__album_artists( self ):
-#        ti = TrackInfo()
-#        ti["album.artists"] = ["John Doe"]
-#        self.assertEquals( ["John Doe"], ti.album_info.artists )
-#        self.assertTrue( "album.artists" in ti )
-#        self.assertEquals( ti["album.artists"], ti.album_info.artists )
+    def test_dict_eq__order_doesnt_matter( self ):
+        d = { "artists": ["Big Bird"],
+              "genres": ["Childrens", "Rock"] }
+        d2 = { "genres": ["Childrens", "Rock"],
+               "artists": ["Big Bird"] }
+        ti = TrackInfo( d2 )
+        self.assertEquals( ti, d )
+        self.assertEquals( d, ti )
 
 def suite():
     return unittest.TestLoader().loadTestsFromTestCase( TestTrackInfo )

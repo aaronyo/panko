@@ -6,11 +6,11 @@ def _dummy_track( path = "dummy" ):
 
 class TestAlbum( unittest.TestCase ):
 
-    def test_empty_to_start( self ):
+    def test_starts_empty( self ):
         alb = album.Album()
         self.assertEquals( 0, alb.num_tracks() )
 
-    def test_add_a_track( self ):
+    def test_add_track( self ):
         alb = album.Album()
         alb.add_track( _dummy_track() )
         self.assertEquals( 1, alb.num_tracks() )

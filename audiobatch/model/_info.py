@@ -22,6 +22,18 @@ class TimeStamp( object ):
                              in (year, month, day, hour, min, sec) ),
                            is_lenient = is_lenient )
 
+    _formats = ['%04d'] + ['%02d'] * 5
+    _seps = ['-', '-', ' ', ':', ':', 'x']
+    def __str__( self ):
+        vals = [ self.year, self.month, self.day,
+                 self.hour, self.min, self.sec ]
+        seq = []
+        for val, format, sep in zip(vals, self._formats, self._seps):
+            if not val: break
+            seq.append( format % val + sep )
+        
+        return ''.join(seq)[:-1]
+
     def __init__( self,
                   year,
                   month = None,
@@ -86,24 +98,12 @@ class TimeStamp( object ):
         else:
             raise ValueError( "%s must be in range %d..%d" % (name, min, max) )
 
-    _formats = ['%04d'] + ['%02d'] * 5
-    _seps = ['-', '-', ' ', ':', ':', 'x']
-    def __str__( self ):
-        vals = [ self.year, self.month, self.day,
-                 self.hour, self.min, self.sec ]
-        seq = []
-        for val, format, sep in zip(vals, self._formats, self._seps):
-            if not val: break
-            seq.append( format % val + sep )
-        
-        return ''.join(seq)[:-1]
-
-
     def __eq__( self, other ):
         return str( self ) == str( other )
 
 
 class Info( object, UserDict.DictMixin ):
+
     def __init__( self ):
         self._fields = {}
 
@@ -118,7 +118,14 @@ class Info( object, UserDict.DictMixin ):
         else:
             object.__setattr__( self, name, val )
 
+    def __deepcopy__( self, memo ):
+        return self.__class__( self )
+
     def __getattr__( self, name ):
+        # to make pickling work
+        if ( name == "__slots__" ):
+            raise AttributeError
+
         return self._fields[ name ].value
 
     def keys( self ):
@@ -145,6 +152,34 @@ class Info( object, UserDict.DictMixin ):
         info_obj, specific_key = self._which( key )
         old_field = info_obj._fields[ specific_key ]
         info_obj._fields[ specific_key ] = old_field._replace( value = val )
+
+    def __getstate__( self ):
+        return self.items()
+
+    def __setstate__( self, items ):
+        for k, v in items:
+            self.__setitem__( k, v )
+
+    def __eq__( self, other ):
+        '''
+        An equality operator that works with anything dict like.
+        
+        When comparing an info object to an actual built in dict, the comparison
+        will work no matter what side of the '==' the objects are on.  This is
+        due to some python magic that causes this __eq__ method to be used
+        in either case.
+        '''
+
+        # FIXME -- what's the best way to do DictMixin == DictMixin?
+        # this approach isn't great if items() doesn't guarantee dict()
+        # constructor will work
+        if callable( getattr( other, "items", None )  ):
+            return dict( self ) == dict( other )
+        else:
+            return False
+
+    def __ne__( self, other ):
+        return not self.__eq__( other )
 
     def _add_field( self, name, mandatory_type = None ):
         self._fields[name] = _Field( name, mandatory_type, None)
