@@ -45,6 +45,7 @@ class Track( object, entity.Entity ):
         _, ext = os.path.splitext( self.relative_path )
         return ext
 
+    @property
     def id( self ):
         return self.absolute_path
 

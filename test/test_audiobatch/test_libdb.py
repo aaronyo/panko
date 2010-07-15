@@ -7,31 +7,32 @@ class TestLibDB( unittest.TestCase ):
     
 
     def setUp( self ):
-        self._lib_name = gen_info.random_letters_str( 10 )
+        lib_name = gen_info.random_letters_str( 10 )
+        self._libdb = libdb.LibDB( lib_name )
 
     def tearDown( self ):
-        libdb.delete_library( self._lib_name )
+        self._libdb.delete_library()
 
     def test_save_track( self ):
         trck = gen_entity.random_track()
-        libdb.save_track( self._lib_name, trck )
-        reloaded_trck = libdb.load_tracks( self._lib_name )
+        self._libdb.save_track( trck )
+        reloaded_trck = self._libdb.load_tracks()
         self.assertEquals( trck, reloaded_trck )
 
     def test_save_album( self ):
         albm = gen_entity.random_album()
-        libdb.save_album( self._lib_name, albm )
-        reloaded_albms = libdb.load_albums( self._lib_name )
+        self._libdb.save_album( albm )
+        reloaded_albms = self._libdb.load_albums()
         self.assertEquals( albm.get_album_info(),
                            reloaded_albms[0].get_album_info() )
 
     def test_save_two_albums( self ):
         albm = gen_entity.random_album()
-        libdb.save_album( self._lib_name, albm )
+        self._libdb.save_album( albm )
         albm2 = gen_entity.random_album()
-        libdb.save_album( self._lib_name, albm2 )
+        self._libdb.save_album( albm2 )
         albms = [albm, albm2]
-        reloaded_albms = libdb.load_albums( self._lib_name )
+        reloaded_albms = self._libdb.load_albums()
         self.assertEquals( 2, len( reloaded_albms ) )
         self.assertEquals(
             [ a.get_album_info() for a in albms ].sort(),
@@ -40,9 +41,15 @@ class TestLibDB( unittest.TestCase ):
     def test_save_album_twice( self ):
         albm = gen_entity.random_album()
         albm_copy = copy.deepcopy( albm )
-        libdb.save_album( self._lib_name, albm )
-        libdb.save_album( self._lib_name, albm_copy )
-        reloaded_albms = libdb.load_albums( self._lib_name )
+        self._libdb.save_album( albm )
+        self._libdb.save_album( albm_copy )
+        reloaded_albms = self._libdb.load_albums()
         self.assertEquals( 1, len( reloaded_albms ) )
         self.assertEquals( albm.get_album_info(),
                            reloaded_albms[0].get_album_info() )
+
+    def test_save_watch_folder( self ):
+        folder = "/tmp/foo"
+        self._libdb.save_watch_folder( folder )
+        saved_folders = self._libdb.load_watch_folders()
+        self.assertEquals( [folder], saved_folders )

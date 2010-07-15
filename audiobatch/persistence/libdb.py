@@ -103,43 +103,78 @@ def _object_hook( dct ):
     else:
         return dct
 
-
-def _libfilepath( library_name ):
+def _library_path( library_name ):
     return os.path.join( _persist_dir, library_name )
 
-def save_album( library_name, albm ):
-    libfile = open( _libfilepath( library_name ), "w" )
-    _albms[ albm.id ] = albm
-    json.dump( _albms.values(),
-               libfile,
-               default = _jsonenc.default, 
-               sort_keys = True,
-               indent = 4)
-    libfile.close()
+def _albums_path( library_name ):
+    return os.path.join( _library_path( library_name ), "albums" )
 
-def load_albums( library_name ):
-    libfile = open( _libfilepath( library_name ), "r" )
-    albms = json.load( libfile, object_hook=_object_hook )
-    libfile.close()
-    return albms
+def _watch_folders_path( library_name ):
+    return os.path.join( _library_path( library_name ), "watch" )
 
-def save_track( library_name, trck ):
-    libfile = open( _libfilepath( library_name ), "w" )
-    json.dump( trck,
-               libfile,
-               default = _jsonenc.default, 
-               sort_keys = True,
-               indent = 4)
-    libfile.close()
 
-def load_tracks( library_name ):
-    libfile = open( _libfilepath( library_name ), "r" )
-    trck = json.load( libfile, object_hook=_object_hook )
-    libfile.close()
-    return trck
+class LibDB:
+    def __init__( self, library_name ):
+        self.library_name = library_name
+        if not os.path.exists( _library_path( self.library_name ) ):
+            os.makedirs( _library_path( self.library_name ) )
+    
+    def save_album( self, albm ):
+        libfile = open( _albums_path( self.library_name ), "w" )
+        _albms[ albm.id ] = albm
+        json.dump( _albms.values(),
+                   libfile,
+                   default = _jsonenc.default, 
+                   sort_keys = True,
+                   indent = 4)
+        libfile.close()
 
-def delete_library( library_name ):
-    os.unlink( _libfilepath( library_name ) )
-    _albms.clear()
-    del _trcks[:]
+    def load_albums( self ):
+        libfile = open( _albums_path( self.library_name ), "r" )
+        albms = json.load( libfile, object_hook=_object_hook )
+        libfile.close()
+        return albms
 
+    def save_track( self, trck ):
+        libfile = open( _albums_path( self.library_name ), "w" )
+        json.dump( trck,
+                   libfile,
+                   default = _jsonenc.default, 
+                   sort_keys = True,
+                   indent = 4)
+        libfile.close()
+
+    def load_tracks( self ):
+        libfile = open( _albums_path( self.library_name ), "r" )
+        trck = json.load( libfile, object_hook=_object_hook )
+        libfile.close()
+        return trck
+
+    def delete_library( self ):
+        if os.path.exists( _albums_path( self.library_name ) ):
+            os.unlink( _albums_path( self.library_name ) )
+        if os.path.exists( _watch_folders_path( self.library_name ) ):
+            os.unlink( _watch_folders_path( self.library_name ) )
+        os.rmdir( _library_path( self.library_name ) )
+        _albms.clear()
+        del _trcks[:]
+
+    def save_watch_folder( self, path):
+        folders = self.load_watch_folders()
+
+        if path not in folders:
+            folders.append( path )
+
+        watchfile = open( _watch_folders_path( self.library_name ), "w" )
+        json.dump( folders, watchfile, sort_keys = True, indent = 4)
+        watchfile.close()
+
+    def load_watch_folders( self ):
+        if os.path.exists( _watch_folders_path( self.library_name ) ):
+            watchfile = open( _watch_folders_path( self.library_name ), "r" )
+            folders = json.load( watchfile )
+            watchfile.close()
+            return folders
+        else:
+            return []
+        
