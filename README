@@ -29,11 +29,12 @@ My goal, beyond what Mutagen does, is to provide a generic model for tracks
 and albums that hides you from file operations and file types. It should
 be possible to construct batch operations for cleaning up meta data,
 converting, etc, without knowing the encoding details of a particular audio
-format.
+format.  In fact, mutagen already hides you from byte level encoding detail,
+but audiobatch goes a step further and maps meta data to common names.
 
 There are several other API's or apps out there with a similar goal.  I
 gave them only a cursory review before deciding to just dive in.  In part, I
-just wanted some python practice.
+just needed some python practice.
 
 If you'd like to learn more about what Audiobatch is currently capable of,
 have a look at the scripts in the source "examples" folder.
