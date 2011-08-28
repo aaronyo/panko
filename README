@@ -16,7 +16,7 @@ Here's a quick example I used to clean up some genres:
   repo = trackrepo.open("/Volumes/fileshare/media/audio/originals")
 
   # Find all tracks with genre of "classical" (lower case 'c')
-  tracks = repo.filter_tracks( lambda trk: trk.genre == "classical" )
+  tracks = repo.tracks( filter = lambda trk: trk.genre == "classical" )
 
   # Change the genres to "Classical" (capital 'C')
   for trk in tracks:
