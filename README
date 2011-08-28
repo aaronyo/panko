@@ -10,21 +10,18 @@ my initial script and grow it into an API for managing my library.
 
 Here's a quick example I used to clean up some genres:
 
-  from audiobatch.persistence import trackrepo
+  from audiobatch import trackrepo
   from audiobatch.model import track
 
-  repo = trackrepo.get_repository()
+  repo = trackrepo.open("/Volumes/fileshare/media/audio/originals")
 
   # Find all tracks with genre of "classical" (lower case 'c')
-  filter = lambda track: track.get_track_info().genre == "classical"
-  tracks = repo.filter_tracks( "/Volumes/fileshare/media/audio/originals",
-                               filter )
+  tracks = repo.filter_tracks( lambda trk: trk.genre == "classical" )
 
   # Change the genres to "Classical" (capital 'C')
-  track_info = track.TrackInfo()
-  track_info.genre = "Classical"
-  for track in tracks:
-      repo.update_track( track, track_info )
+  for trk in tracks:
+      trk.genre = "Classical"
+      repo.update_track( trk )
 
 Props to the Mutagen python library, which handles all the byte level
 encoding details for evey audio format I could ever hope to support.
@@ -32,20 +29,12 @@ encoding details for evey audio format I could ever hope to support.
 My goal, beyond what Mutagen does, is to provide a generic model for tracks
 and albums that hides you from file operations and file types. It should
 be possible to construct batch operations for cleaning up meta data,
-converting, etc, without even knowing what kinds of audio files you are
-dealing with (except, say, specifying a target format when exporting).
+converting, etc, without knowing the encoding details of a particular audio
+format.
 
 There are several other API's or apps out there with a similar goal.  I
-gave them only a cursory review before deciding to just dive in.  Here's a
-little more detail on my motivations:
-
-* Provide a model for tracks and albums and their metadata ("tags", bitrate,
-identity like ISRC, accuracy/accuraterip) making it clear and easy to work
-with generic properties regardless of media type
-* Contain all the details of file access behind a simple DDD (Domain Driven
-Design) style repository so that performance concerns such as network
-file access, can be improved upon in isolation
-* Practice python coding and DDD
+gave them only a cursory review before deciding to just dive in.  In part, I
+just wanted some python practice.
 
 If you'd like to learn more about what Audiobatch is currently capable of,
 have a look at the scripts in the source "examples" folder.
