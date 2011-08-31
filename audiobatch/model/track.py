@@ -1,140 +1,145 @@
 import os.path
-import UserDict
-from types import ListType, DictType, IntType
+from .time_stamp import TimeStamp
+import collections
+from . import image
 
-from copy import deepcopy
-import types
+class ImageSet(collections.MutableMapping):
+    image_spec = { \
+        "cover": image.ImageRef
+    }
+    
+    def __init__(self):
+        self._images = {} 
 
-from audiobatch.model import _info, entity
+    def __len__( self ):
+        return len(self._images)
+
+    def __contains__( self, key ):
+        return key in self._images
+
+    def __iter__( self ):
+        return iter(self._images)
+
+    def __getitem__(self, key):
+        return self._images[key]
+
+    def __delitem__(self, key):
+        del sel._images[key]
+
+    def __setitem__(self, key, value):
+        if key not in image_spec:
+            raise Exception("an ImageSet does not have key '%s'" % key)
+        self._images[key] = value
 
 
-def extless_compare( track1, track2 ):    
-    return cmp( track1.extless_relative_path, track2.extless_relative_path )
+class TagSet(collections.MutableMapping):
+    # A dictionary with a couple added features:
+    #   1. Parse and validate keys and values against a spec
+    #   2. Provided a flattened view with "dot" notation for nested dicts/TagSets
+    
+    def __init__(self, tags=None):
+        self._tags = tags or {}
+
+    def __len__( self ):
+        return len(self._tags)
+
+    def __contains__( self, key ):
+        return key in self._tags
+
+    def __iter__( self ):
+        return iter(self._tags)
+
+    def __getitem__(self, key):
+        return self._tags[key]
+
+    def __setitem__(self, key, value):
+        self._tags[key] = value
+        
+    def __delitem__(self, key):
+        del self._tags[key]
+        
+    def __repr__(self):
+        return '%s( %s ) ' % ( self.__class__.__name__, repr(self._tags) )
+
+    def parse(self, dotted_key, value):
+            key, sub_key = (dotted_key.split('.') + [None])[:2]
+            if sub_key:
+                if key not in self._tags:
+                    self._tags[key] = self.tag_spec[key]()
+                sub_spec = self.tag_spec[key].tag_spec[sub_key]
+                self._tags[key][sub_key] = \
+                    TagSet._apply_type_spec(sub_spec, value)
+            else:
+                self._tags[key] = \
+                    TagSet._apply_type_spec(self.tag_spec[key], value)
+
+    def flat(self):
+        flat_tags = {}
+        for k, v in tags:
+            if isinstance( v, track.TagSet ):
+                for sub_k, sub_v in v:
+                    flat_tags[k+'.'+sub_k] = sub_v
+            else:
+                flat_tags[k] = v
+        return flat_tags 
+
+    @staticmethod
+    def _apply_type_spec(type_spec, value):
+        if type(type_spec) == list:
+            return [TagSet._apply_type_spec(type_spec[0], v) for v in value]
+        else:
+            if hasattr(type_spec, 'parse'):
+                parse_func = type_spec.parse
+            else:
+                parse_func = type_spec
+            if hasattr(value, '__getitem__') and not isinstance( value,
+                                                                 basestring ):
+                return parse_func(value[0])
+            else:
+                return parse_func(value)
 
 
-class Track( object, entity.Entity ):
-    """ An implmentation of a 'Track' that loads content lazily. """
-    def __init__( self, mod_time, base_dir, relative_path ):
-        self.mod_time = mod_time
-        self.base_dir = base_dir
-        self.relative_path = relative_path
+class AlbumTagSet(TagSet):
+    tag_spec = { \
+        "artists": [unicode],
+        "composers": [unicode],
+        "title": unicode,
+        "release_date": TimeStamp,
+        "isrc": str,
+    }
 
-    def get_track_info( self ):
-        raise NotImplementedError()
+class TrackTagSet(TagSet):
+    tag_spec = { \
+        "artists": [unicode],
+        "title": unicode,
+        "track_number": int,
+        "track_total": int,
+        "disc_number": int,
+        "disc_total": int,
+        "composers": [unicode],
+        "genres": [unicode],
+        "isrc": str,
+        "album": AlbumTagSet
+    }        
 
-    def get_audio_stream( self ):
-        raise NotImplementedError()
 
-    def set_track_info( self, track_info ):
-        raise NotImplementedError()
-
-    def set_audio_stream( self, track_info ):
-        raise NotImplementedError()
-
-    @property
-    def absolute_path( self ):
-        return os.path.join( self.base_dir, self.relative_path )
-
-    @property
-    def extless_relative_path( self ):
-        extless, _ = os.path.splitext( self.relative_path )
-        return extless
+class Track(object):
+    def __init__( self, mod_time, path, tags=None, images=None ):
+        self.path = path
+        self.tags = tags or TrackTagSet()
+        self.images = images or ImageSet()
 
     @property
     def extension( self ):
-        _, ext = os.path.splitext( self.relative_path )
+        _, ext = os.path.splitext( self.path )
         return ext
 
     @property
     def id( self ):
-        return self.absolute_path
+        return self.path
 
     def __eq__( self, other ):
-        return ( self.base_dir == other.base_dir
-                 and self.relative_path == other.relative_path )
+        return ( self.id == other.id )
 
     def __ne__( self, other ):
         return not self.__eq__( other )
-
-
-class DTOTrack( Track ):
-    """ An implmentation of a 'Track' that loads content lazily. """
-    def __init__( self, mod_time, base_dir, relative_path ):
-        Track.__init__( self, mod_time, base_dir, relative_path )
-        self._track_info = None
-        self._audio_stream = None
-
-    def get_track_info( self ):
-        return self._track_info
-
-    def get_audio_stream( self ):
-        return self._audio_stream
-
-    def set_track_info( self, track_info ):
-         self._track_info = track_info
-
-    def set_audio_stream( self, audio_stream ):
-        self._audio_stream = audio_stream
-
-
-class LazyTrack( Track ):
-    """ An implmentation of a 'Track' that loads content lazily. """
-    def __init__( self, mod_time, base_dir, relative_path, track_repo ):
-        Track.__init__( self, mod_time, base_dir, relative_path )
-        self._track_repo = track_repo
-        self._track_info = None
-        self._audio_stream = None
-
-    def get_track_info( self ):
-        if self._track_info == None:
-            self._track_info = \
-                self._track_repo.get_track_info( self.base_dir,
-                                                 self.relative_path)
-        return deepcopy( self._track_info )
-
-    def get_audio_stream( self ):
-        if self._audio_stream == None:
-            self._audio_stream = \
-                self._track_repo.get_audio_stream( self.base_dir,
-                                                   self.relative_path)
-        # FIXME: use a flyweight for the actual stream/path within an
-        # audio stream.  If a path gets moved, we want all existing
-        # AudioStream instances to have their path ref updated.
-        return deepcopy( self._audio_stream )
-
-# FIXME: remove this once convinced that Track classes will be immutable.
-#    def __deepcopy__(self, memo):
-#        """ Overriding the standard deepcopy behavior because we don't
-#        want our library, just used for lazy loading, to be deepcopied. """
-#        dup = LazyTrack( self._library,
-#                         deepcopy( self.library_key, memo ),
-#                         deepcopy( self.mod_time, memo ) )
-#        dup._track_info = deepcopy( self._track_info, memo )
-#        dup._audio_stream = deepcopy( self._audio_stream, memo )
-#        return dup
-
-
-class TrackInfo( _info.Info ):
-    def __init__( self, fields_dict = None ):
-        _info.Info.__init__( self )
-        self._add_field( "artists", ListType )
-        self._add_field( "title" )
-        self._add_field( "track_number", IntType )
-        self._add_field( "track_total", IntType )
-        self._add_field( "disc_number", IntType)
-        self._add_field( "disc_total", IntType )
-        self._add_field( "composers", ListType)
-        self._add_field( "genres", ListType )
-        self._add_field( "isrc" )
-        if fields_dict != None: self.update( fields_dict )
-
-    @property
-    def primary_artist( self ):
-        if len( self.artists ) > 0:
-            return self.artists[0]
-        else:
-            return None
-
-
-
-

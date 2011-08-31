@@ -1,14 +1,15 @@
-import os.path
+import os
+import stat
 import shutil
 import types
 import logging
 
-from audiobatch.model import image, track, album
+from audiobatch.model import image, track
 
 _LOGGER = logging.getLogger()
 
-def read( path ):
-    from audiobatch.persistence.audiofile import flac, mp3, mp4
+def open(path):
+    from . import flac
     _, ext = os.path.splitext( path )
     ext = ext[1:] # drop the "."
     if ext in flac.EXTENSIONS:
@@ -21,12 +22,23 @@ def read( path ):
         raise Exception( "File extension not recognized for file: %s"
                          % path )
 
+def update(path, tags=None, images=None):
+    pass
+
+def convert(path, target_path, format, tags=None, images=None):
+    pass
+
+def read_track(path):
+    audio_file = open(path)
+    mod_time = os.stat(path)[stat.ST_MTIME]
+    return track.Track(path, mod_time, audio_file.get_tags())
+        
 def scan( self,
           base_dir_abs,
           extensions = None,
           exclude_patterns = None,
           return_rel_path = True ):
-''' Return paths of audio files found beneath the designated base directory '''
+    ''' Return paths of audio files found beneath the designated base directory '''
 
     paths = set()
     for path, _, files in os.walk(base_dir_abs):
@@ -65,31 +77,13 @@ class AudioFile( object ):
         self._mutagen_obj = mutagen_obj
         self._updated_audio_stream = None
 
-    def clear_track_info( self, track_info ):
+    def clear_tags( self, track_info ):
         raise NotImplementedError
 
-    def get_info( self ):
-        album_info, track_info = self._get_info()
-        self._add_folder_images( album_info )
-        return album_info, track_info
-
-    def _get_info( self ):
+    def get_tags( self ):
         raise NotImplementedError
 
-    def update_info( self, info ):
-        """ Similar to 'update' on python dictionaries.  Existing values
-        not given a new value will remain."""
-        if isinstance( info, track.TrackInfo ):
-            self._update_track_info( info )
-        elif isinstance( info, album.AlbumInfo ):
-            self._update_album_info( info )
-        else:
-            raise TypeError( info )
-
-    def _update_track_info( self, track_info ):
-        raise NotImplementedError
-
-    def _update_album_info( self, track_info ):
+    def update_tags( self, track_info ):
         raise NotImplementedError
 
     def get_audio_stream( self ):
@@ -158,9 +152,7 @@ class AudioFile( object ):
 
     @staticmethod
     def _unicode_all( val ):
-        if type(val) == types.ListType:
+        if not isinstance(val, basestring) and has_attr(val, '__iter__'):
             return [ unicode(x) for x in val ]
         else:
             return unicode( val )
-        
-

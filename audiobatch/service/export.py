@@ -44,7 +44,7 @@ def prepare_export( source_dir,
 def export( export_job,
             convert_format,
             stream_converter = audiostream.make_converter(),
-            listen = service.default_event_listener() ):
+            listener = service.default_event_listener() ):
 
     track_repo = trackrepo.get_repository()
 
@@ -54,7 +54,7 @@ def export( export_job,
     i = 0
     for track, is_new in export_job.converts:
         i += 1
-        listen( ExportTrackingEvent( "Converting",
+        listener.tell( ExportTrackingEvent( "Converting",
                                      i,
                                      num_converts,
                                      track.relative_path,

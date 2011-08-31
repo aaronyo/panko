@@ -1,6 +1,7 @@
 import StringIO
 
 SUBJECT__ALBUM_COVER = "cover"
+from PIL import Image
 
 def makeImage( path=None, bytes=None ):
     from audiobatch.persistence import imagefile
@@ -20,3 +21,7 @@ class Image( object ):
 
     def conform_size( self, max_side_length ):
         raise NotImplementedError
+
+class ImageRef( object ):
+    def open():
+        raise NotImplementedError        

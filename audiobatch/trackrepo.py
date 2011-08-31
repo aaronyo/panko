@@ -15,32 +15,24 @@ import fnmatch
 import stat
 import shutil
 
-from audiobatch.util import cache
-from audiobatch.model.track import LazyTrack
-from audiobatch.persistence import audiofile
+from .util import cache
+from . import audiofile
 
 _repository = None
 _DEFAULT_AUDIO_EXTENSIONS= ['mp3', 'flac', 'm4a']
 _DEFAULT_EXCLUDE_PATTERNS= [".*", "*/.*"]
 
-def init_repository( cache_size ):
-    global _repository
-    _repository = TrackRepository( cache_size,
-                                   _DEFAULT_AUDIO_EXTENSIONS,
-                                   _DEFAULT_EXCLUDE_PATTERNS )
-
-def get_repository():
-    global _repository
-    if _repository == None:
-        init_repository( 1000 )
-    return _repository
+def open(repo_dir):
+    return TrackRepository(repo_dir)
 
 class TrackRepository( object ):
 
     """ A class for retrieving and persisting 'Tracks' to/from the file system
     """
 
-    def __init__( self, cache_size, extensions, exclude_patterns ):
+    def __init__( self, repo_dir,
+                  extensions = _DEFAULT_AUDIO_EXTENSIONS,
+                  exclude_patterns = _DEFAULT_EXCLUDE_PATTERNS ):
         """ 'cache_size' specifies the number of audio_files to cache
 
         The motiviation behind the cache is to avoid round trips to the file
@@ -48,17 +40,13 @@ class TrackRepository( object ):
         across the network
 
         """
-        # FIXME: I've seen at lease one bug where mutagen leaves a file
-        # open, which means this cache would leave file descriptors open.
-        # Does it make more sense to just cache Track instances?
-        self._audio_file_cache = cache.LRUCache( cache_size )
+        self._repo_dir = repo_dir
         self._extensions = extensions
         self._exclude_patterns = exclude_patterns
 
-    def all_tracks( self,
-                    library_dir ):
+    def tracks(self, filter = None):
 
-        relative_paths = self._find_paths( library_dir,
+        relative_paths = self._find_paths( _repo_dir,
                                            self._extensions,
                                            self._exclude_patterns )
         tracks = []
@@ -67,24 +55,11 @@ class TrackRepository( object ):
             mod_time = os.stat( abs_path )[stat.ST_MTIME]
             # Paths is a set, which helps us enforce that our keys for the
             # audio tracks are unique
-            track = LazyTrack( mod_time = mod_time,
-                               library_dir = library_dir,
-                               relative_path = rel_path,
-                               track_repo = self )
-            tracks.append( track )
+            track = audiofile.read_track( abs_path )
+            if not filter( track ):
+                tracks.append( track )
               
         return tracks
-
-    def filter_tracks( self,
-                       library_dir,
-                       filter ):
-        tracks = self.all_tracks( library_dir )
-        filtered_tracks = []
-        for track in tracks:
-            if filter( track ):
-                filtered_tracks.append( track )
-
-        return filtered_tracks
 
     def get_track_info( self, library_dir, track_path ):
         audio_file = self._get_audio_file( library_dir, track_path )

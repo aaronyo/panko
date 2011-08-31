@@ -3,7 +3,7 @@ import logging
 import StringIO
 import shutil
 
-from audiobatch.persistence.audiofile import AudioFile
+from . import AudioFile
 from audiobatch.model import audiostream, image, track, album, format
 
 _LOGGER = logging.getLogger()
