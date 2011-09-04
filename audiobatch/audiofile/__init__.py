@@ -31,7 +31,7 @@ def convert(path, target_path, format, tags=None, images=None):
 def read_track(path):
     audio_file = open(path)
     mod_time = os.stat(path)[stat.ST_MTIME]
-    return track.Track(path, mod_time, audio_file.get_tags())
+    return track.Track(path, mod_time, audio_file.get_tags(), audio_file.get_raw_tags())
         
 def scan( self,
           base_dir_abs,

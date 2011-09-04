@@ -50,6 +50,9 @@ class FLACFile( AudioFile ):
                                         format.FLAC_STREAM,
                                         self.path )
 
+    def get_raw_tags( self ):
+        return dict(self._flac_obj)
+        
     def get_tags( self ):
         tags = track.TrackTagSet()
         flac_obj = self._flac_obj

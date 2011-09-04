@@ -38,7 +38,7 @@ class TagSet(collections.MutableMapping):
     #   2. Provided a flattened view with "dot" notation for nested dicts/TagSets
     
     def __init__(self, tags=None):
-        self._tags = tags or {}
+        self._tags = dict(tags or {})
 
     def __len__( self ):
         return len(self._tags)
@@ -124,9 +124,10 @@ class TrackTagSet(TagSet):
 
 
 class Track(object):
-    def __init__( self, mod_time, path, tags=None, images=None ):
+    def __init__( self, mod_time, path, tags=None, raw_tags=None, images=None ):
         self.path = path
         self.tags = tags or TrackTagSet()
+        self.raw_tags = raw_tags
         self.images = images or ImageSet()
 
     @property
