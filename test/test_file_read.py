@@ -1,13 +1,17 @@
 import unittest
 import os.path
+import shutil
 
 from audiobatch import audiofile
 from audiobatch.model.time_stamp import TimeStamp
+from audiobatch.model.track import TrackTagSet
 
-AUDIO_FILES_DIR = os.path.join( os.path.dirname(__file__), 'audio')
-TRACK_1_PATH = os.path.join( AUDIO_FILES_DIR,
+AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
+AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
+TEMP_DIR = os.path.join( os.path.dirname(__file__), 'temp')
+TRACK_1_PATH = os.path.join( AUDIO_DIR,
                              'Alex Lloyd/Black the Sun/01 Melting.flac' )
-TRACK_2_PATH = os.path.join( AUDIO_FILES_DIR,
+TRACK_2_PATH = os.path.join( AUDIO_DIR,
                              'Dire Straits/Making Movies/01 Tunnel Of Love.mp3' )
 
 TRACK_1_TAGS = { 
@@ -47,6 +51,16 @@ class TestRead( unittest.TestCase ):
 
     def test_read_tags__mp3(self):
         trk = audiofile.read_track(TRACK_2_PATH)
-        print trk.raw_tags
-        
         self.assertEquals(TRACK_2_TAGS, trk.tags)
+
+class TestWrite( unittest.TestCase ):
+    def tearDown(self):
+        for f in os.listdir(TEMP_DIR):
+            f_path = os.path.join(TEMP_DIR, f)
+            os.unlink(f_path)
+                
+    def test_write__mp3(self):
+        target = os.path.join(TEMP_DIR, 'test_write.mp3')
+        shutil.copy(TRACK_2_PATH, target)
+        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
+        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )

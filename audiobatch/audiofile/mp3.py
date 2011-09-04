@@ -81,29 +81,10 @@ class MP3File( AudioFile ):
         else:
             return self._updated_audio_stream
 
-    def clear_all( self ):
+    def clear_tags( self ):
         self._mp3_obj.delete()
-        
-    def _update_album_info( self, album_info ):
-        if self._mp3_obj.tags == None:
-            self._mp3_obj.add_tags()
 
-        self._add_images( album_info.images )
-        for field_name, value in album_info.items():
-            if field_name == "images":
-                continue # handled in _add_images call above
-            if field_name == "release_date":
-                value = str( value )
-            lookup_name = "album." + field_name
-            if lookup_name in _COMMON_TO_ID3:
-                id3_frame_class = _COMMON_TO_ID3[ lookup_name ]
-                frame = id3_frame_class( encoding=3, text=value )
-                self._mp3_obj.tags.add( frame )
-            else: 
-                _LOGGER.error( "Can't write '%s' - ID3 mapping not found"
-                               % lookup_name )
-
-    def _update_track_info( self, track_info ):
+    def update_tags( self, tags ):
         if self._mp3_obj.tags == None:
             self._mp3_obj.add_tags()
 
@@ -114,7 +95,8 @@ class MP3File( AudioFile ):
         track_number = None
         track_total = None
 
-        for field_name, value in track_info.items():
+        flat_tags = track.TagSet.flatten(tags)
+        for field_name, value in flat_tags.items():
             if field_name in _COMMON_TO_ID3:
                 if field_name == "track_number":
                     track_number = value
@@ -125,6 +107,8 @@ class MP3File( AudioFile ):
                 elif field_name == "disc_total":
                     disc_total = value
                 else:
+                    if field_name == "album.release_date":
+                        value = str( value )
                     id3_frame_class = _COMMON_TO_ID3[ field_name ]
                     frame = id3_frame_class( encoding=3, text=value )
                     self._mp3_obj.tags.add( frame )

@@ -74,10 +74,14 @@ class TagSet(collections.MutableMapping):
                     TagSet._apply_type_spec(self.tag_spec[key], value)
 
     def flat(self):
+        return self.flatten(self._tags)
+
+    @staticmethod
+    def flatten(tags):
         flat_tags = {}
-        for k, v in tags:
-            if isinstance( v, track.TagSet ):
-                for sub_k, sub_v in v:
+        for k, v in tags.items():
+            if isinstance( v, collections.Mapping ):
+                for sub_k, sub_v in v.items():
                     flat_tags[k+'.'+sub_k] = sub_v
             else:
                 flat_tags[k] = v

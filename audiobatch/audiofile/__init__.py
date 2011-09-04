@@ -33,6 +33,13 @@ def read_track(path):
     mod_time = os.stat(path)[stat.ST_MTIME]
     return track.Track(path, mod_time, audio_file.get_tags(), audio_file.get_raw_tags())
         
+def write_tags(path, tags, clear=False):
+    audio_file = open(path)
+    if clear:
+        audio_file.clear_tags()
+    audio_file.update_tags(tags)
+    audio_file.save()
+    
 def scan( self,
           base_dir_abs,
           extensions = None,
