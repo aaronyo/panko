@@ -4,7 +4,7 @@ import StringIO
 import shutil
 
 from . import AudioFile
-from audiobatch.model import audiostream, image, track, album, format
+from audiobatch.model import track, audiostream, format, image
 
 _LOGGER = logging.getLogger()
 
@@ -49,22 +49,13 @@ def _encode_TRCK_frame( track_number, track_total ):
     frame_text = _encode_pos_str( track_number, track_total )
     return id3.TRCK( encoding=3, text=frame_text ) if frame_text else None
 
-def _blank_safe_int( str ):
-    return int( str ) if str != '' else None
-
-def _decode_TRCK_frame( frame ):
+def _split_TRCK_frame( frame ):
     vals = frame.text[0].split("/")
-    if len(vals) == 1:
-        return _blank_safe_int( vals[0] ), None
-    else:
-        return _blank_safe_int( vals[0] ), _blank_safe_int( vals[1] )
+    return vals[0], vals[1] if len(vals) > 1 else None
 
-def _decode_TPOS_frame( frame ):
+def _split_TPOS_frame( frame ):
     vals = frame.text[0].split("/")
-    if len(vals) == 1:
-        return _blank_safe_int( vals[0] ), None
-    else:
-        return _blank_safe_int( vals[0] ), _blank_safe_int( vals[1] )
+    return vals[0], vals[1] if len(vals) > 1 else None
 
 
 def recognized( path ):
@@ -149,22 +140,13 @@ class MP3File( AudioFile ):
         if trck_frame != None:
             self._mp3_obj.tags.add( trck_frame )
 
+    def get_raw_tags( self ):
+        return dict(self._mp3_obj)
 
-    def _get_info( self ):
-        def _update_field( info, field_name, mp3_value ):
-            if info.is_multi_value( field_name ):
-                info[ field_name ] = [ unicode(x) for x in mp3_value.text ]
-            else:
-                    # important to call unicode() as some values are
-                    # not actually strings -- only string like -- and lack
-                    # important methods like the default string cmp()
-                info[ field_name ] = unicode( mp3_value.text[0] )
-
-        album_info = album.AlbumInfo()
-        track_info = track.TrackInfo()
-
+    def get_tags( self ):
+        tags = track.TrackTagSet()
         mp3_obj = self._mp3_obj
-
+        
         disc_number = None
         disc_total = None
         track_number = None
@@ -172,29 +154,25 @@ class MP3File( AudioFile ):
 
         for tag_name, value in mp3_obj.items():
             if tag_name in _ID3_TO_COMMON:
-                field_name = _ID3_TO_COMMON [ tag_name ]
-                if field_name.startswith("album."):
-                    field_name = field_name[6:]
-                    _update_field( album_info, field_name, value )
-                else:
-                    _update_field( track_info, field_name, value )
+                value_unicode = [unicode(t) for t in value.text]
+                tags.parse(_ID3_TO_COMMON[ tag_name ], value_unicode )
             # id3 combines the number and total into a single field of
             # format: "number/total"
             elif tag_name == id3.TRCK.__name__:
-                track_number, track_total = _decode_TRCK_frame( value )
+                track_number, track_total = _split_TRCK_frame( value )
             elif tag_name == id3.TPOS.__name__:
-                disc_number, disc_total = _decode_TPOS_frame( value )
+                disc_number, disc_total = _split_TPOS_frame( value )
             else:
                 _LOGGER.debug( "Can't read MP3 tag "
                                + "'%s' - common mapping not found"
                                % tag_name )
 
-        track_info[ "track_number"] = track_number
-        track_info[ "track_total" ] = track_total
-        track_info[ "disc_number" ] = disc_number
-        track_info[ "disc_total" ] = disc_total 
+        tags.parse("track_number", track_number)
+        tags.parse("track_total", track_total)
+        tags.parse("disc_number", disc_number)
+        tags.parse("disc_total", disc_total )
 
-        return album_info, track_info
+        return tags
 
     def _add_images( self, images ):
         for subject, img in images.items():

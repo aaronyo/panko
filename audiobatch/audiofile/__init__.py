@@ -9,7 +9,7 @@ from audiobatch.model import image, track
 _LOGGER = logging.getLogger()
 
 def open(path):
-    from . import flac
+    from . import flac, mp3
     _, ext = os.path.splitext( path )
     ext = ext[1:] # drop the "."
     if ext in flac.EXTENSIONS:
