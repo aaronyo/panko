@@ -1,9 +1,11 @@
 import unittest
 import os.path
 import shutil
+import datetime
+from pprint import pprint
 
 from audiobatch import audiofile
-from audiobatch.model.time_stamp import TimeStamp
+from audiobatch.model.timeutil import LenientDate
 from audiobatch.model.track import TrackTagSet
 
 AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
@@ -25,7 +27,7 @@ TRACK_1_TAGS = {
     'album': { 
         'artists': ['Alex Lloyd'],
         'title': 'Black the Sun',
-        'release_date': TimeStamp.parse( '1999-08-02' )
+        'release_date': LenientDate.parse( '1999-08-02' )
     }
 }
 
@@ -39,7 +41,7 @@ TRACK_2_TAGS = {
     'disc_number': 1,
     'artists': ['Dire Straits'],
     'album': {
-        'release_date': TimeStamp.parse('1980'),
+        'release_date': LenientDate.parse('1980'),
         'title': 'Making Movies'
     }
 }
@@ -47,11 +49,18 @@ TRACK_2_TAGS = {
 class TestRead( unittest.TestCase ):
     def test_read_tags__flac(self):
         trk = audiofile.read_track(TRACK_1_PATH)
+        pprint(trk.tags)
         self.assertEquals(TRACK_1_TAGS, trk.tags)
 
     def test_read_tags__mp3(self):
         trk = audiofile.read_track(TRACK_2_PATH)
+        pprint(trk.tags)
         self.assertEquals(TRACK_2_TAGS, trk.tags)
+        
+    def test_read_mod_time(self):
+        trk = audiofile.read_track(TRACK_1_PATH)
+        self.assertEquals( datetime.datetime(2011, 8, 28, 11, 1, 39),
+                           trk.mod_time )
 
 class TestWrite( unittest.TestCase ):
     def tearDown(self):

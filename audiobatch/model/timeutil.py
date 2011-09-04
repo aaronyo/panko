@@ -1,8 +1,8 @@
 import datetime
 
-class TimeStamp( object ):
+class LenientDate( object ):
     @staticmethod
-    def parse( text, is_lenient = True):
+    def parse( text, allow_invalids = True):
         year, month, day, hour, min, sec = [None] * 6
         # Replace missing vals with None
         date, time = ( tuple(text.split(" ")) + (None, None) )[:2]
@@ -13,11 +13,11 @@ class TimeStamp( object ):
             hour, min, sec = \
                 ( tuple(time.split("-")) + (None, None, None) )[:3]
         
-        return TimeStamp( *( int(x) if x else None for x
+        return LenientDate( *( int(x) if x else None for x
                              in (year, month, day, hour, min, sec) ),
-                           is_lenient = is_lenient )
+                           allow_invalids = allow_invalids )
 
-    _formats = ['%04d'] + ['%02d'] * 5
+    _formats = ['%04i'] + ['%02i'] * 5
     _seps = ['-', '-', ' ', ':', ':', 'x']
 
     def __str__(self):
@@ -31,7 +31,14 @@ class TimeStamp( object ):
         return ''.join(seq)[:-1]
 
     def __repr__(self):
-        return "%s.parse( '%s' )" % (self.__class__.__name__, str(self))
+        vals = [ self.year, self.month, self.day,
+                 self.hour, self.min, self.sec ]
+        seq = []
+        for val in vals:
+            if not val: break
+            seq.append(repr(val))
+        params = ', '.join(seq)
+        return "%s( %s )" % (self.__class__.__name__, params)
 
     def __init__( self,
                   year,
@@ -40,7 +47,7 @@ class TimeStamp( object ):
                   hour = None,
                   min = None,
                   sec = None ,
-                  is_lenient = True):
+                  allow_invalids = True):
 
         '''
         Interpretation stops at the first None or invalid value.
@@ -48,7 +55,7 @@ class TimeStamp( object ):
         If lenient is set to true, an error is not raised for an invalid,
         .e.g. out of range, value.
         '''
-        self.is_lenient = is_lenient
+        self.allow_invalids = allow_invalids
         self.year, self.month, self.day, self.hour, self.min, self.sec =\
             [None] * 6
 
@@ -82,7 +89,7 @@ class TimeStamp( object ):
         try:
             datetime.date( self.year, self.month, day )
         except ValueError as ve:
-            if self.is_lenient:
+            if self.allow_invalids:
                 return False
             else:
                 raise ve
@@ -91,7 +98,7 @@ class TimeStamp( object ):
     def  _validate_range( self, val, min, max, name ):
         if min <= val <= max:
             return True
-        elif self.is_lenient:
+        elif self.allow_invalids:
             return False
         else:
             raise ValueError( "%s must be in range %d..%d" % (name, min, max) )

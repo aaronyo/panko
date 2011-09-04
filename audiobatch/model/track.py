@@ -1,5 +1,5 @@
 import os.path
-from .time_stamp import TimeStamp
+from .timeutil import LenientDate
 import collections
 from . import image
 
@@ -108,7 +108,7 @@ class AlbumTagSet(TagSet):
         "artists": [unicode],
         "composers": [unicode],
         "title": unicode,
-        "release_date": TimeStamp,
+        "release_date": LenientDate,
         "isrc": str,
     }
 
@@ -128,8 +128,9 @@ class TrackTagSet(TagSet):
 
 
 class Track(object):
-    def __init__( self, mod_time, path, tags=None, raw_tags=None, images=None ):
+    def __init__( self, path, mod_time, tags=None, raw_tags=None, images=None ):
         self.path = path
+        self.mod_time = mod_time
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
         self.images = images or ImageSet()

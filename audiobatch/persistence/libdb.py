@@ -52,7 +52,7 @@ def _album_from_dict( album_dict ):
     ai = album.AlbumInfo()
     for k, v in album_dict["album_info"].items():
         if k == "release_date":
-            ai[ k ] = _info.TimeStamp.parse( v )
+            ai[ k ] = _info.LenientDate.parse( v )
         else:
             ai[ k ] = v
 
@@ -84,7 +84,7 @@ class TrackJSONEncoder( json.JSONEncoder ):
     def default( self, obj ):
         if isinstance( obj, track.Track ):
             return _track_to_dict( obj )
-        elif isinstance( obj, _info.TimeStamp ):
+        elif isinstance( obj, _info.LenientDate ):
             return str( obj )
         elif isinstance( obj, datetime.datetime ):
             return _encode_datetime( obj )

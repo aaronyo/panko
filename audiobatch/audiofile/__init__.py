@@ -3,6 +3,7 @@ import stat
 import shutil
 import types
 import logging
+import datetime
 
 from audiobatch.model import image, track
 
@@ -30,7 +31,7 @@ def convert(path, target_path, format, tags=None, images=None):
 
 def read_track(path):
     audio_file = open(path)
-    mod_time = os.stat(path)[stat.ST_MTIME]
+    mod_time = datetime.datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
     return track.Track(path, mod_time, audio_file.get_tags(), audio_file.get_raw_tags())
         
 def write_tags(path, tags, clear=False):
@@ -97,45 +98,9 @@ class AudioFile( object ):
         raise NotImplementedError
 
     def set_audio_stream( self, audio_stream ):
-        """ Replaces the underlying audio file with a new version where
-        all tags are copied over and only the stream has changed. """
-        self._updated_audio_stream = audio_stream
+        raise NotImplementedError
 
     def save( self ):
-        if (     self._updated_audio_stream != None
-             and self._updated_audio_stream.path != self.path ):
-            stream = self._updated_audio_stream
-
-            # We've got a new stream file.  The existing tags in this new
-            # file are largely irrelevant, but for now we won't clear them
-            # since we don't have a more deliberate approach to keeping
-            # around encoder credits tagged by whatever created the
-            # stream.
-            # Actually replacing the stream's bytes in place in the 
-            # original audio file would be conceptually accurate, but
-            # mutagen doesn't provide for this, it would require more
-            # disk writes than a rename, and the write could easily fail
-            # in the middle (think large file over network) leading to
-            # a corrupted audio stream in our library.
-            self._copy_tags_to( stream.path )
-
-            # FIXME: ack... I'm going to have to make sure permission bits
-            # are always coming out as desired at some point.  This
-            # may not be the most relevant place for this note...
-            if ( stream.is_temp_path ):
-                target_dir = os.path.dirname( self.path )
-                if not os.path.isdir( target_dir ):
-                    os.makedirs( target_dir )                
-                shutil.move( stream.path, self.path )
-            else:
-                raise ValueError("updated audio streams must ref a temp path")
-
-            # Update the the AudioStream's path member to reflect the
-            # move in case this AudioStream is referenced elsewhere.
-            stream.path = self.path
-            stream.is_temp_path = None
-            self._updated_audio_stream = None
-        else:
             self._mutagen_obj.save()
 
     def _add_folder_images( self, album_info ):
