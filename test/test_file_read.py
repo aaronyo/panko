@@ -19,6 +19,13 @@ ALBUM_1_COVER_PATH = os.path.join( AUDIO_DIR,
                                    'Alex Lloyd/Black the Sun/cover.jpg' )
 TRACK_2_PATH = os.path.join( AUDIO_DIR,
                              'Dire Straits/Making Movies/01 Tunnel Of Love.mp3' )
+TRACK_3_PATH = os.path.join( AUDIO_DIR,
+                             'Compilations/Jazz Dance Classics Volume 1/01 Celestial Blues.m4a' )
+
+# FIXME:  NEEDED TESTS:
+# * unicode
+# * ...
+
 
 TRACK_1_TAGS = { 
     'artists': ['Alex Lloyd'],
@@ -50,17 +57,34 @@ TRACK_2_TAGS = {
     }
 }
 
+TRACK_3_TAGS = {
+    'genres': ['Jazz'],
+    'title': 'Celestial Blues',
+    'track_total': 8,
+    'track_number': 1,
+    'artists': ['Gary Bartz'],
+    'album': {
+        'artists': ['Various'],
+        'title': 'Jazz Dance Classics Volume 1'
+    }
+}
+
 class TestRead( unittest.TestCase ):
     def test_read_tags__flac(self):
         trk = audiofile.read_track(TRACK_1_PATH)
-        pprint(trk.tags)
+        pprint(trk.raw_tags)
         self.assertEquals(TRACK_1_TAGS, trk.tags)
 
     def test_read_tags__mp3(self):
         trk = audiofile.read_track(TRACK_2_PATH)
-        pprint(trk.tags)
+        pprint(trk.raw_tags)
         self.assertEquals(TRACK_2_TAGS, trk.tags)
         
+    def test_read_tags__mp4(self):
+        trk = audiofile.read_track(TRACK_3_PATH)
+        pprint(trk.raw_tags)
+        self.assertEquals(TRACK_3_TAGS, trk.tags)
+
     def test_read_mod_time(self):
         trk = audiofile.read_track(TRACK_1_PATH)
         self.assertEquals( datetime.datetime(2011, 8, 28, 11, 1, 39),
@@ -86,5 +110,11 @@ class TestWrite( unittest.TestCase ):
     def test_write__mp3(self):
         target = os.path.join(TEMP_DIR, 'test_write.mp3')
         shutil.copy(TRACK_2_PATH, target)
+        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
+        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
+        
+    def test_write__mp4(self):
+        target = os.path.join(TEMP_DIR, 'test_write.m4a')
+        shutil.copy(TRACK_3_PATH, target)
         audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
         self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )

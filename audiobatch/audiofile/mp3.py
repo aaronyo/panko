@@ -81,9 +81,6 @@ class MP3File( AudioFile ):
         else:
             return self._updated_audio_stream
 
-    def clear_tags( self ):
-        self._mp3_obj.delete()
-
     def update_tags( self, tags ):
         if self._mp3_obj.tags == None:
             self._mp3_obj.add_tags()
@@ -123,9 +120,6 @@ class MP3File( AudioFile ):
         trck_frame = _encode_TRCK_frame( track_number, track_total )
         if trck_frame != None:
             self._mp3_obj.tags.add( trck_frame )
-
-    def get_raw_tags( self ):
-        return dict(self._mp3_obj)
 
     def get_tags( self ):
         tags = track.TrackTagSet()

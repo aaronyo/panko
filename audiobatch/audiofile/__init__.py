@@ -96,8 +96,11 @@ class AudioFile( object ):
         self._mutagen_obj = mutagen_obj
         self._updated_audio_stream = None
 
-    def clear_tags( self, track_info ):
-        raise NotImplementedError
+    def clear_tags( self ):
+        self._mutagen_obj.delete()
+
+    def get_raw_tags( self ):
+        return dict(self._mutagen_obj)
 
     def get_tags( self ):
         raise NotImplementedError

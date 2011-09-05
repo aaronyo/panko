@@ -72,31 +72,29 @@ class MP4File( AudioFile ):
             
 
 
-    def _update_album_info( self, album_info ):
-        mp4_obj = self._mp4_obj
-        for field_name, value in album_info.items():
-            if field_name == "images":
-                #FIXME: handle saving embedded images in MP4
-                continue
-            elif field_name == "release_date":
-                if value.month != None:
-                    _LOGGER.warn( "Can't write extended date information to "
-                                  + "MP4 -- only year: %s" % value )
-                value = str(value.year)
-            lookup_name = "album." + field_name
-            try:
-                mp4_tag_name = _COMMON_TO_MP4[ lookup_name ]
-            except KeyError:
-                _LOGGER.error( "Can't write '%s' - MP4 mapping not found"
-                               % tag_name )
-                continue
-            if album_info.is_multi_value( field_name ):
-                mp4_obj[ mp4_tag_name ] = value
-            else:
-                mp4_obj[ mp4_tag_name ] = [value]
+#    def _update_album_info( self, album_info ):
+#        mp4_obj = self._mp4_obj
+#        for field_name, value in album_info.items():
+#            elif field_name == "release_date":
+#                if value.month != None:
+#                    _LOGGER.warn( "Can't write extended date information to "
+#                                  + "MP4 -- only year: %s" % value )
+#                value = str(value.year)
+#            lookup_name = "album." + field_name
+#            try:
+#                mp4_tag_name = _COMMON_TO_MP4[ lookup_name ]
+#            except KeyError:
+#                _LOGGER.error( "Can't write '%s' - MP4 mapping not found"
+#                               % tag_name )
+#                continue
+#            if album_info.is_multi_value( field_name ):
+#                mp4_obj[ mp4_tag_name ] = value
+#            else:
+#                mp4_obj[ mp4_tag_name ] = [value]
             
 
-    def _update_track_info( self, track_info ):
+    def update_tags( self, tags ):
+        flat_tags = track.TrackTagSet.flatten(tags)
         mp4_obj = self._mp4_obj
         # mp4 combines the number and total into a single "atom"
         # further, it doesn't seem to accept None -- 0 must be provided
@@ -107,7 +105,7 @@ class MP4File( AudioFile ):
         track_number = 0
         track_total = 0
 
-        for field_name, value in track_info.items():
+        for field_name, value in flat_tags.items():
             if field_name == "track_number":
                 track_number = value
             elif field_name == "track_total":
@@ -117,6 +115,12 @@ class MP4File( AudioFile ):
             elif field_name == "disc_total":
                 disc_total = value
             else: 
+                if field_name == "album.release_date":
+                    if value.month != None:
+                        _LOGGER.warn( "Can't write extended date information to "
+                                      + "MP4 -- only year: %s" % value )
+                    value = str(value.year)
+
                 try:
                     mp4_tag_name = _COMMON_TO_MP4[ field_name ]
                 except KeyError:
@@ -129,7 +133,7 @@ class MP4File( AudioFile ):
                 # Mutagen seems to always read encoded tags into a list,
                 # but varies on wheter or not it handles non-list input
                 # appropriately, so we'll just always use a list
-                elif track_info.is_multi_value( field_name ):
+                elif not isinstance(value, basestring) and hasattr(value, '__iter__'):
                     mp4_obj[ mp4_tag_name ] = value
                 else:
                     mp4_obj[ mp4_tag_name ] = [value]

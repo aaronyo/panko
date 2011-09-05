@@ -50,9 +50,6 @@ class FLACFile( AudioFile ):
                                         format.FLAC_STREAM,
                                         self.path )
 
-    def get_raw_tags( self ):
-        return dict(self._flac_obj)
-        
     def get_tags( self ):
         tags = track.TrackTagSet()
         flac_obj = self._flac_obj
@@ -66,20 +63,3 @@ class FLACFile( AudioFile ):
                                + "'%s' - common mapping not found"
                                % flac_tag_name )
         return tags
-            
-    def update_tags( self, tags ):
-        flat_tags = tags.flat()
-        for field_name, value in flat_tags.items():
-            # Mutagen FLAC dictionary access coverts
-            # single elements to lists (since all vorbis comments are
-            # lists).  Since it handles this conversion for us, we don't need
-            # the same special handling as we did when reading the track_info
-            if field_name in _COMMON_TO_FLAC:
-                self._flac_obj[ _COMMON_TO_FLAC[ field_name ] ]= \
-                    AudioFile._unicode_all( value )
-            else:
-                _LOGGER.error( "Can't write '%s' - FLAC mapping not found"
-                               % field_name )
-                
-    def save( self ):
-        self._flac_obj.save()
