@@ -2,7 +2,7 @@ import logging
 import mutagen.flac
 from . import AudioFile
 
-from audiobatch.model import track, audiostream, format
+from audiobatch.model import track
 
 _LOGGER = logging.getLogger()
 

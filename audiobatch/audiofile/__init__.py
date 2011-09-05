@@ -5,12 +5,13 @@ import types
 import logging
 import datetime
 
-from audiobatch.model import image, track
+from .. import model
+from .. import trackimage
 
 _LOGGER = logging.getLogger()
 
 def open(path):
-    from . import flac, mp3
+    from . import flac, mp3, mp4
     _, ext = os.path.splitext( path )
     ext = ext[1:] # drop the "."
     if ext in flac.EXTENSIONS:
@@ -29,11 +30,21 @@ def update(path, tags=None, images=None):
 def convert(path, target_path, format, tags=None, images=None):
     pass
 
-def read_track(path):
+def read_track(path, cover=None):
     audio_file = open(path)
     mod_time = datetime.datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
-    return track.Track(path, mod_time, audio_file.get_tags(), audio_file.get_raw_tags())
-        
+    image_ref = None
+    if cover:
+        cover_path = os.path.join(os.path.dirname(path), cover)
+        if os.path.exists(cover_path):
+            image_ref = model.track.PathImageRef(cover_path)
+            
+    return model.track.Track( path,
+                              mod_time,
+                              audio_file.get_tags(),
+                              audio_file.get_raw_tags(),
+                              image_ref )
+
 def write_tags(path, tags, clear=False):
     audio_file = open(path)
     if clear:

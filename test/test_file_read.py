@@ -2,9 +2,11 @@ import unittest
 import os.path
 import shutil
 import datetime
+import hashlib
 from pprint import pprint
 
 from audiobatch import audiofile
+from audiobatch import trackimage
 from audiobatch.model.timeutil import LenientDate
 from audiobatch.model.track import TrackTagSet
 
@@ -13,6 +15,8 @@ AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
 TEMP_DIR = os.path.join( os.path.dirname(__file__), 'temp')
 TRACK_1_PATH = os.path.join( AUDIO_DIR,
                              'Alex Lloyd/Black the Sun/01 Melting.flac' )
+ALBUM_1_COVER_PATH = os.path.join( AUDIO_DIR,
+                                   'Alex Lloyd/Black the Sun/cover.jpg' )
 TRACK_2_PATH = os.path.join( AUDIO_DIR,
                              'Dire Straits/Making Movies/01 Tunnel Of Love.mp3' )
 
@@ -61,6 +65,17 @@ class TestRead( unittest.TestCase ):
         trk = audiofile.read_track(TRACK_1_PATH)
         self.assertEquals( datetime.datetime(2011, 8, 28, 11, 1, 39),
                            trk.mod_time )
+                           
+    def test_read_folder_image_path(self):
+        trk = audiofile.read_track(TRACK_1_PATH, cover='cover.jpg')
+        self.assertEquals(ALBUM_1_COVER_PATH, trk.cover.path)
+
+    def test_folder_image_has_bytes(self):
+        trk = audiofile.read_track(TRACK_1_PATH, cover='cover.jpg')
+        img = trackimage.read_image(trk.cover)
+        expected = hashlib.md5(open(ALBUM_1_COVER_PATH).read()).hexdigest()
+        # compare hashes to keep failure messages short
+        self.assertEquals( expected, hashlib.md5(img.bytes).hexdigest() )
 
 class TestWrite( unittest.TestCase ):
     def tearDown(self):

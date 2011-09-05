@@ -1,36 +1,6 @@
 import os.path
 from .timeutil import LenientDate
 import collections
-from . import image
-
-class ImageSet(collections.MutableMapping):
-    image_spec = { \
-        "cover": image.ImageRef
-    }
-    
-    def __init__(self):
-        self._images = {} 
-
-    def __len__( self ):
-        return len(self._images)
-
-    def __contains__( self, key ):
-        return key in self._images
-
-    def __iter__( self ):
-        return iter(self._images)
-
-    def __getitem__(self, key):
-        return self._images[key]
-
-    def __delitem__(self, key):
-        del sel._images[key]
-
-    def __setitem__(self, key, value):
-        if key not in image_spec:
-            raise Exception("an ImageSet does not have key '%s'" % key)
-        self._images[key] = value
-
 
 class TagSet(collections.MutableMapping):
     # A dictionary with a couple added features:
@@ -127,14 +97,20 @@ class TrackTagSet(TagSet):
     }        
 
 
+class PathImageRef( object ):
+    def __init__(self, path):
+        self.path = path
+        self.kind = 'path'
+
+
 class Track(object):
-    def __init__( self, path, mod_time, tags=None, raw_tags=None, images=None ):
+    def __init__( self, path, mod_time, tags=None, raw_tags=None, cover=None ):
         self.path = path
         self.mod_time = mod_time
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
-        self.images = images or ImageSet()
-
+        self.cover = cover
+        
     @property
     def extension( self ):
         _, ext = os.path.splitext( self.path )

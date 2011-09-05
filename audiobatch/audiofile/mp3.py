@@ -4,7 +4,7 @@ import StringIO
 import shutil
 
 from . import AudioFile
-from audiobatch.model import track, audiostream, format, image
+from audiobatch.model import track
 
 _LOGGER = logging.getLogger()
 
@@ -27,7 +27,7 @@ _ID3_TO_COMMON = dict( (v.__name__ if v else None, k)
                        for k, v in _COMMON_TO_ID3.iteritems() )
 
 _ID3_PIC_CODES = {
-    image.SUBJECT__ALBUM_COVER : 3
+    'cover' : 3
 }
 
 EXTENSIONS = ["mp3"]

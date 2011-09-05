@@ -1,8 +1,8 @@
 import mutagen.mp4
 import logging
 
-from audiobatch.persistence.audiofile import AudioFile
-from audiobatch.model import track, album, audiostream, format
+from . import AudioFile
+from audiobatch.model import track
 
 
 _LOGGER = logging.getLogger()
@@ -140,34 +140,24 @@ class MP4File( AudioFile ):
             mp4_obj[ "disk" ]= [ (disc_number, disc_total) ]            
 
 
-    def _get_info( self ):
-        def _update_field( info, field_name, mp4_value ):
-            if info.is_multi_value( field_name ):
-                info[ field_name ] = [ unicode(x) for x in mp4_value ]
-            else:
-                    # important to call unicode() as some values are
-                    # not actually strings -- only string like -- and lack
-                    # important methods like the default string cmp()
-                info[ field_name ] = unicode( mp4_value[0] )
-
+    def get_tags( self ):
         # FIXME: How are multi vals encoded?  Have seen artists sep by '/'.
+        tags = track.TrackTagSet()
         mp4_obj = self._mp4_obj
-        track_info = track.TrackInfo()
-        album_info = album.AlbumInfo()
         
         for mp4_tag_name, value in mp4_obj.items():
             if mp4_tag_name == "disk":
                 first_val = value[0]
                 if first_val[0] != 0:
-                    track_info[ "disc_number" ] = first_val[0]
+                    tags.parse("disc_number", first_val[0])
                 if first_val[1] != 0:
-                    track_info[ "disc_total" ] = first_val[1]
+                    tags.parse("disc_total", first_val[1])
             elif mp4_tag_name == "trkn":
                 first_val = value[0]
                 if first_val[0] != 0:
-                    track_info[ "track_number" ] = first_val[0]
+                    tags.parse("track_number", first_val[0])
                 if first_val[1] != 0:
-                    track_info[ "track_total" ] = first_val[1]
+                    tags.parse("track_total", first_val[1])
             else:
                 try:
                     field_name = _MP4_TO_COMMON[ mp4_tag_name ]            
@@ -176,10 +166,6 @@ class MP4File( AudioFile ):
                                    + "'%s' - common mapping not found"
                                    % _cleanse_for_ascii(mp4_tag_name) )
                     continue
-                if field_name.startswith("album."):
-                    field_name = field_name[6:]
-                    _update_field( album_info, field_name, value )
-                else:
-                    _update_field( track_info, field_name, value )
+                tags.parse(field_name, value)
 
-        return album_info, track_info
+        return tags
