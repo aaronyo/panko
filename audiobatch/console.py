@@ -2,6 +2,12 @@ import sys
 import os
 import logging
 
+# Tasks:
+# 1. dedupe
+# 2. convert
+# 3. embed cover art
+# 4. fix tags
+
 from audiobatch.service import ServiceEvent
 
 _LOGGER = logging.getLogger()

@@ -1,5 +1,5 @@
 import os.path
-from .timeutil import LenientDate
+from .timeutil import LenientDateTime
 import collections
 
 class TagSet(collections.MutableMapping):
@@ -78,8 +78,7 @@ class AlbumTagSet(TagSet):
         "artists": [unicode],
         "composers": [unicode],
         "title": unicode,
-        "release_date": LenientDate,
-        "isrc": str,
+        "release_date": LenientDateTime
     }
 
 class TrackTagSet(TagSet):
@@ -104,12 +103,12 @@ class PathImageRef( object ):
 
 
 class Track(object):
-    def __init__( self, path, mod_time, tags=None, raw_tags=None, cover=None ):
+    def __init__( self, path, mod_time, tags=None, raw_tags=None, cover_art=None ):
         self.path = path
         self.mod_time = mod_time
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
-        self.cover = cover
+        self.cover_art = cover_art
         
     @property
     def extension( self ):

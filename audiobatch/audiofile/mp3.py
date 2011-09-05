@@ -26,9 +26,7 @@ _COMMON_TO_ID3 = {
 _ID3_TO_COMMON = dict( (v.__name__ if v else None, k) 
                        for k, v in _COMMON_TO_ID3.iteritems() )
 
-_ID3_PIC_CODES = {
-    'cover' : 3
-}
+_ID3_COVER_ART_CODE = 3
 
 EXTENSIONS = ["mp3"]
 
@@ -152,23 +150,18 @@ class MP3File( AudioFile ):
 
         return tags
 
-    def _add_images( self, images ):
-        for subject, img in images.items():
-            if _ID3_PIC_CODES.has_key( subject ):
-                id3_pic_code = _ID3_PIC_CODES[ subject ]
-            else:
-                _LOGGER.warn( ( "ID3 mapping for image subject '%s' not " +
-                                "found.  Will not be written to mp3: %s" )
-                              % (subject, self.path) )
-                continue
- 
-            apicFrame = id3.APIC( encoding = 3,
-                                  mime = 'image/jpeg',
-                                  type = id3_pic_code,
-                                  desc = u'%s' % subject,
-                                  data = img.get_bytes() )
-            self._mp3_obj.tags.add( apicFrame )
-        
+
+    def _embed_cover_art( self, bytes, mime_type ):
+        apicFrame = id3.APIC( encoding = 3,
+                              mime = mime_type,
+                              type = _ID3_COVER_ART_CODE,
+                              desc = 'cover',
+                              data = bytes )
+        self._mp3_obj.tags.add( apicFrame )        
+
+    def _extract_cover_art( self ):
+        art = self._mp3_obj.tags[id3.APIC.__name__+':cover']
+        return art.data, art.mime
 
     def __repr__( self ):
         return self._mp3_obj.__repr__()

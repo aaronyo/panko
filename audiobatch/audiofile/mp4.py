@@ -10,6 +10,8 @@ _LOGGER = logging.getLogger()
 _UNSUPPORTED = "unsupported"
 _SPECIAL = "special"
 
+# reference: http://code.google.com/p/mp4v2/wiki/iTunesMetadata#Sources
+
 _MP4_TO_COMMON = {
     "\xa9alb"     : "album.title",
     "aART"        : "album.artists",
@@ -19,10 +21,12 @@ _MP4_TO_COMMON = {
     _SPECIAL      : "disc_number",
     _SPECIAL      : "disc_total",
     "\xa9gen"     : "genres",
-    _UNSUPPORTED  : "isrc",
     "\xa9nam"     : "title",
     _SPECIAL      : "track_number",
     _SPECIAL      : "track_total",
+    # Non standard tags.  (iTunes is the defactor standard)
+    # FIXME: what does dbPoweramp use?
+    "----:com.apple.iTunes:ISRC" : "isrc",
     }
 
 _COMMON_TO_MP4 = dict( [ (v, k) for k, v in _MP4_TO_COMMON.items() ] )
@@ -71,28 +75,6 @@ class MP4File( AudioFile ):
                                             self.path )
             
 
-
-#    def _update_album_info( self, album_info ):
-#        mp4_obj = self._mp4_obj
-#        for field_name, value in album_info.items():
-#            elif field_name == "release_date":
-#                if value.month != None:
-#                    _LOGGER.warn( "Can't write extended date information to "
-#                                  + "MP4 -- only year: %s" % value )
-#                value = str(value.year)
-#            lookup_name = "album." + field_name
-#            try:
-#                mp4_tag_name = _COMMON_TO_MP4[ lookup_name ]
-#            except KeyError:
-#                _LOGGER.error( "Can't write '%s' - MP4 mapping not found"
-#                               % tag_name )
-#                continue
-#            if album_info.is_multi_value( field_name ):
-#                mp4_obj[ mp4_tag_name ] = value
-#            else:
-#                mp4_obj[ mp4_tag_name ] = [value]
-            
-
     def update_tags( self, tags ):
         flat_tags = track.TrackTagSet.flatten(tags)
         mp4_obj = self._mp4_obj
@@ -116,11 +98,7 @@ class MP4File( AudioFile ):
                 disc_total = value
             else: 
                 if field_name == "album.release_date":
-                    if value.month != None:
-                        _LOGGER.warn( "Can't write extended date information to "
-                                      + "MP4 -- only year: %s" % value )
-                    value = str(value.year)
-
+                    value = str(value.date())
                 try:
                     mp4_tag_name = _COMMON_TO_MP4[ field_name ]
                 except KeyError:

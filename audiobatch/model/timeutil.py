@@ -1,6 +1,6 @@
 import datetime
 
-class LenientDate( object ):
+class LenientDateTime( object ):
     @staticmethod
     def parse( text, allow_invalids = True):
         year, month, day, hour, min, sec = [None] * 6
@@ -13,12 +13,15 @@ class LenientDate( object ):
             hour, min, sec = \
                 ( tuple(time.split("-")) + (None, None, None) )[:3]
         
-        return LenientDate( *( int(x) if x else None for x
+        return LenientDateTime( *( int(x) if x else None for x
                              in (year, month, day, hour, min, sec) ),
                            allow_invalids = allow_invalids )
 
     _formats = ['%04i'] + ['%02i'] * 5
     _seps = ['-', '-', ' ', ':', ':', 'x']
+
+    def date(self):
+        return LenientDateTime(self.year, self.month, self.day)
 
     def __str__(self):
         vals = [ self.year, self.month, self.day,
@@ -29,6 +32,7 @@ class LenientDate( object ):
             seq.append( format % val + sep )
 
         return ''.join(seq)[:-1]
+        
 
     def __repr__(self):
         vals = [ self.year, self.month, self.day,

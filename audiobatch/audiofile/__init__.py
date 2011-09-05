@@ -4,13 +4,15 @@ import shutil
 import types
 import logging
 import datetime
+import StringIO
+import copy
+import PIL.Image
 
 from .. import model
-from .. import trackimage
 
 _LOGGER = logging.getLogger()
 
-def open(path):
+def open_audio_file(path):
     from . import flac, mp3, mp4
     _, ext = os.path.splitext( path )
     ext = ext[1:] # drop the "."
@@ -24,18 +26,12 @@ def open(path):
         raise Exception( "File extension not recognized for file: %s"
                          % path )
 
-def update(path, tags=None, images=None):
-    pass
-
-def convert(path, target_path, format, tags=None, images=None):
-    pass
-
-def read_track(path, cover=None):
-    audio_file = open(path)
+def read_track(path, cover_art=None):
+    audio_file = open_audio_file(path)
     mod_time = datetime.datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
     image_ref = None
-    if cover:
-        cover_path = os.path.join(os.path.dirname(path), cover)
+    if cover_art:
+        cover_path = os.path.join(os.path.dirname(path), cover_art)
         if os.path.exists(cover_path):
             image_ref = model.track.PathImageRef(cover_path)
             
@@ -46,42 +42,79 @@ def read_track(path, cover=None):
                               image_ref )
 
 def write_tags(path, tags, clear=False):
-    audio_file = open(path)
+    audio_file = open_audio_file(path)
     if clear:
         audio_file.clear_tags()
     audio_file.update_tags(tags)
     audio_file.save()
+
+def read_folder_image(track_path, filename=None):
+    dir_ = os.path.dirname(track_path)
+    path = os.path.join(dir_, filename)
+
+    format = os.path.splitext(path)[1][1:].lower()
+    format = 'jpeg' if format == 'jpg' else format
+    return Image( open(path).read(), format )
     
-def scan( self,
-          base_dir_abs,
-          extensions = None,
-          exclude_patterns = None,
-          return_rel_path = True ):
-    ''' Return paths of audio files found beneath the designated base directory '''
+def embed_cover_art(track_path, image):
+    audio_file = open_audio_file(track_path)
+    audio_file.embed_cover_art(image)
+    audio_file.save()
+    
+def extract_cover_art(track_path):
+    return open_audio_file(track_path).extract_cover_art()
 
-    paths = set()
-    for path, _, files in os.walk(base_dir_abs):
-        for name in files:
-            patterns = []
-            if extensions == None:
-                patterns.append('*')
-            else:
-                for ext in extensions:
-                    patterns.append('*' + os.extsep + ext)
-            for pattern in patterns:
-                if fnmatch.fnmatch(name, pattern):
-                    absolute_path = os.path.join(path, name)
-                    if not TrackRepository._should_exclude(
-                        absolute_path,
-                        exclude_patterns ):
-                        if return_rel_path:
-                            paths.add( os.path.relpath( absolute_path,
-                                                        base_dir_abs ) )
-                        else:
-                            paths.add( absolute_path )
-                    break
+class Image( object ):        
+    def __init__( self, bytes, format ):
+        self.bytes = bytes
+        if format.startswith('image/'):
+            format = format[6:]
+        self.format = format.lower()
 
-    return paths
+    def __eq__(self, other):
+       return self.bytes == other.bytes and self.format == other.format
+
+    @staticmethod
+    def from_pil_image( pil_image, format ):
+        buf = StringIO.StringIO()
+        pil_image.save(buf, format = format or pil_image.format)
+        bytes = buf.getvalue()
+        buf.close()
+        return Image(bytes, pil_image.format)
+        
+    def pil_image(self):
+        pil_image = PIL.Image.open( StringIO.StringIO(self.bytes) )
+        pil_image.format = self.format
+        return pil_image
+
+    def dimensions( self ):
+        return self._pil_image().size
+
+    def mime_type( self, shorten=False ):
+        return self.format
+
+    def full_mime_type(self):
+        return "image/" + self.format.lower()
+
+    def conform_size( self, max_side_length ):
+        '''Returns a copy conforming to max_side_length'''
+        pil_image = PIL.Image.open( StringIO.StringIO(self.bytes) )
+        width, height = pil_image.size
+        if width >= height:
+            if width > max_side_length:
+                target_width = max_side_length
+                target_height = int( (float(target_width) / width) * height )
+        elif height > max_side_length:
+            target_height = max_side_length
+            target_width = int ( (float(target_height) / height) * width )
+
+        if target_width != None:
+            new_pil_image = pil_image.resize( (target_width, target_height),
+                                              PIL.Image.ANTIALIAS )
+            return Image.from_pil_image( new_pil_image, self.format )
+        else:
+            return Image( copy.deepcopy(self.bytes), self.format )
+            
 
 class AudioFile( object ):
     """
@@ -95,13 +128,7 @@ class AudioFile( object ):
         self.path = path
         self._mutagen_obj = mutagen_obj
         self._updated_audio_stream = None
-
-    def clear_tags( self ):
-        self._mutagen_obj.delete()
-
-    def get_raw_tags( self ):
-        return dict(self._mutagen_obj)
-
+        
     def get_tags( self ):
         raise NotImplementedError
 
@@ -114,20 +141,26 @@ class AudioFile( object ):
     def set_audio_stream( self, audio_stream ):
         raise NotImplementedError
 
+    def _embed_cover_art( self, bytes, mime_type ):
+        raise NotImplementedError
+
+    def _extract_cover_art( self ):
+        raise NotImplementedError
+
+    def embed_cover_art( self, img ):
+        self._embed_cover_art(img.bytes, img.full_mime_type())
+
+    def extract_cover_art(self):
+        return Image(* self._extract_cover_art())
+
+    def clear_tags( self ):
+        self._mutagen_obj.delete()
+
+    def get_raw_tags( self ):
+        return dict(self._mutagen_obj)
+
     def save( self ):
             self._mutagen_obj.save()
-
-    def _add_folder_images( self, album_info ):
-        """ For now, only looks for a "cover.jpg" """
-        containing_folder = os.path.dirname( self.path )
-        cover_path = os.path.join( containing_folder, "cover.jpg" )
-        if os.path.isfile( cover_path ):
-            if image.SUBJECT__ALBUM_COVER in album_info.images:
-                _LOGGER.warn( "Reading folder image instead of already"
-                              + " found image: %s, %s"
-                              % ( image.SUBJECT__ALBUM_COVER, self.path ) )
-            album_info.images = \
-                {image.SUBJECT__ALBUM_COVER: image.makeImage( cover_path ) }
 
     def _copy_tags_to( self, target_path ):
         """ Copy tags to a file of the same format as this AudioFile. """
