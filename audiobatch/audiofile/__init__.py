@@ -32,14 +32,15 @@ def read_track(path, cover_art=None):
     image_ref = None
     if cover_art:
         cover_path = os.path.join(os.path.dirname(path), cover_art)
-        if os.path.exists(cover_path):
-            image_ref = model.track.PathImageRef(cover_path)
+        if not os.path.exists(cover_path):
+            cover_art=None
             
     return model.track.Track( path,
                               mod_time,
-                              audio_file.get_tags(),
-                              audio_file.get_raw_tags(),
-                              image_ref )
+                              audio_file.tags(),
+                              audio_file.raw_tags(),
+                              cover_art,
+                              audio_file.has_cover_art() )
 
 def write_tags(path, tags, clear=False):
     audio_file = open_audio_file(path)
@@ -124,44 +125,74 @@ class AudioFile( object ):
     lifting of the byte level formatting.
     """
 
-    def __init__( self, path, mutagen_obj ):
+    def __init__( self, path,  ):
         self.path = path
-        self._mutagen_obj = mutagen_obj
-        self._updated_audio_stream = None
+        self._mutagen_obj = self._mutagen_class(path)
+        self._mapping = self._tag_mapping()
         
-    def get_tags( self ):
-        raise NotImplementedError
+    def tags( self ):
+        tags = model.track.TrackTagSet()
+        for mtg_name in self._mutagen_obj.keys():
+            # you can have more than one common tag name corresponding to
+            # a single mutegen element
+            common_names = self._mutagen_name_to_common(mtg_name)
+            if len(common_names) == 0:
+                _LOGGER.debug( "Can't read %s tag '%s' - " 
+                               "common mapping not found"
+                               % (self.kind, mtg_name) )
+                continue
+            for common_name in common_names:
+                mapping = self._mapping[common_name]
+                if len(mapping) == 1:
+                    raw_value = self._mutagen_obj[mapping[0]]
+                else:
+                    raw_value = mapping[2](self._mutagen_obj)
+                tags.parse(common_name, raw_value)
+        return tags
 
-    def update_tags( self, track_info ):
-        raise NotImplementedError
-
-    def get_audio_stream( self ):
-        raise NotImplementedError
-
-    def set_audio_stream( self, audio_stream ):
-        raise NotImplementedError
+    def update_tags( self, tags ):
+        flat_tags = model.track.TrackTagSet.flatten(tags)
+        for common_tag, value in flat_tags.items():
+            if common_tag.endswith('date'):
+                # mutagen can't handle our custom 'LenientDateTime' class
+                value = str(value)
+            mapping = self._mapping[common_tag]
+            if len(mapping) == 1:
+                self._mutagen_obj[_mapping[0]] = value
+            else:
+                mapping[1](value, self._mutagen_obj)
 
     def _embed_cover_art( self, bytes, mime_type ):
         raise NotImplementedError
 
     def _extract_cover_art( self ):
         raise NotImplementedError
+        
+    def has_cover_art( self ):
+        raise NotImplementedError
 
     def embed_cover_art( self, img ):
         self._embed_cover_art(img.bytes, img.full_mime_type())
 
-    def extract_cover_art(self):
+    def extract_cover_art( self ):
         return Image(* self._extract_cover_art())
 
     def clear_tags( self ):
         self._mutagen_obj.delete()
 
-    def get_raw_tags( self ):
+    def raw_tags( self ):
         return dict(self._mutagen_obj)
 
     def save( self ):
             self._mutagen_obj.save()
 
+    def _mutagen_name_to_common(self, mtg_name):
+        common_names = []
+        for k, v in self._mapping.items():
+            if v[0] == mtg_name:
+                common_names.append(k)
+        return common_names
+            
     def _copy_tags_to( self, target_path ):
         """ Copy tags to a file of the same format as this AudioFile. """
         mutagen_class = self._mutagen_obj.__class__

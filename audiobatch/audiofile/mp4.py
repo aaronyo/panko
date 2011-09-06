@@ -151,3 +151,7 @@ class MP4File( AudioFile ):
                 tags.parse(field_name, value)
 
         return tags
+        
+    def has_cover_art(self):
+        # FIXME: implement
+        return False

@@ -68,9 +68,9 @@ class TagSet(collections.MutableMapping):
                 parse_func = type_spec
             if hasattr(value, '__getitem__') and not isinstance( value,
                                                                  basestring ):
-                return parse_func(value[0])
+                return parse_func(unicode(value[0]))
             else:
-                return parse_func(value)
+                return parse_func(unicode(value))
 
 
 class AlbumTagSet(TagSet):
@@ -103,12 +103,16 @@ class PathImageRef( object ):
 
 
 class Track(object):
-    def __init__( self, path, mod_time, tags=None, raw_tags=None, cover_art=None ):
+    def __init__( self, path, mod_time, tags=None, raw_tags=None,
+                  folder_cover_art=None, embedded_cover_art=False ):
         self.path = path
         self.mod_time = mod_time
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
-        self.cover_art = cover_art
+        self.has_embedded_cover_art = embedded_cover_art
+        if folder_cover_art:
+            self.has_folder_cover_art = True
+            self.folder_cover_art = folder_cover_art
         
     @property
     def extension( self ):

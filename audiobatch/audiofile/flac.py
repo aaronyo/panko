@@ -63,3 +63,7 @@ class FLACFile( AudioFile ):
                                + "'%s' - common mapping not found"
                                % flac_tag_name )
         return tags
+        
+    def has_cover_art(self):
+        # FIXME: implement
+        return False
