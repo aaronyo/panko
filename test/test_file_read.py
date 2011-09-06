@@ -128,3 +128,11 @@ class TestWrite( unittest.TestCase ):
         self.assertTrue( trk.has_embedded_cover_art )
         self.assertEquals( img, audiofile.extract_cover_art(target) )
     
+    def test_image_embed_and_extract__mp3(self):
+        target = os.path.join(TEMP_DIR, 'test_write_image.m4a')
+        shutil.copy(TRACK_3_PATH, target)
+        img = audiofile.read_folder_image(TRACK_1_PATH, "cover.jpg")
+        audiofile.embed_cover_art(target, img)
+        trk = audiofile.read_track(target)
+        self.assertTrue( trk.has_embedded_cover_art )
+        self.assertEquals( img, audiofile.extract_cover_art(target) )

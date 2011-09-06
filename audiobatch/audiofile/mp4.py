@@ -7,9 +7,26 @@ class MP4File( AudioFile ):
     
     kind = 'MP4'
     _mutagen_class = mp4.MP4
+    _image_formats = {
+        'image/jpeg' : mp4.MP4Cover.FORMAT_JPEG,
+        'image/png'  : mp4.MP4Cover.FORMAT_PNG
+    }
 
     def _tag_mapping(self):
         return self._tag_mapping_dict
+
+    def _embed_cover_art(self, bytes, mime_type):
+        fmt = self._image_formats[mime_type]
+        self._mutagen_obj['covr'] = [mp4.MP4Cover(bytes, fmt)]
+
+    def _extract_cover_art(self):
+        art = self._mutagen_obj['covr'][0]
+        for mime, mp4_fmt in self._image_formats.items():
+            if mp4_fmt == art.imageformat:
+                return art, mime
+
+    def has_cover_art(self):
+        return 'covr' in self._mutagen_obj.tags
 
     def _part_of(mp4_tag_name, idx):
         def to_box(value, mp4_obj):
@@ -42,7 +59,3 @@ class MP4File( AudioFile ):
         # FIXME: what does dbPoweramp use?
         "isrc"               : "----:com.apple.iTunes:ISRC"
     }
-
-    def has_cover_art(self):
-        # FIXME: implement
-        return False

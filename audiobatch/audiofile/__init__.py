@@ -34,7 +34,6 @@ def read_track(path, cover_art=None):
         cover_path = os.path.join(os.path.dirname(path), cover_art)
         if not os.path.exists(cover_path):
             cover_art=None
-            
     return model.track.Track( path,
                               mod_time,
                               audio_file.tags(),
