@@ -110,9 +110,7 @@ class Track(object):
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
         self.has_embedded_cover_art = embedded_cover_art
-        if folder_cover_art:
-            self.has_folder_cover_art = True
-            self.folder_cover_art = folder_cover_art
+        self.folder_cover_art = folder_cover_art
         
     @property
     def extension( self ):
@@ -122,6 +120,16 @@ class Track(object):
     @property
     def id( self ):
         return self.path
+        
+    @property
+    def folder_cover_art_path( self ):
+        if self.folder_cover_art:
+            return os.path.join( os.path.dirname(self.path),
+                                 self.folder_cover_art)
+    
+    @property
+    def has_folder_cover_art( self ):
+        return bool(self.folder_cover_art)
 
     def __eq__( self, other ):
         return ( self.id == other.id )
