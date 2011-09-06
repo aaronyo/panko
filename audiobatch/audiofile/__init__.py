@@ -83,7 +83,7 @@ class Image( object ):
         buf.close()
         return Image(bytes, pil_image.format)
         
-    def pil_image(self):
+    def to_pil_image(self):
         pil_image = PIL.Image.open( StringIO.StringIO(self.bytes) )
         pil_image.format = self.format
         return pil_image
