@@ -69,10 +69,10 @@ TRACK_3_TAGS = {
 }
 
 class TestRead( unittest.TestCase ):
-#    def test_read_tags__flac(self):
-#        trk = audiofile.read_track(TRACK_1_PATH)
-#        pprint(trk.raw_tags)
-#        self.assertEquals(TRACK_1_TAGS, trk.tags)
+    def test_read_tags__flac(self):
+        trk = audiofile.read_track(TRACK_1_PATH)
+        pprint(trk.raw_tags)
+        self.assertEquals(TRACK_1_TAGS, trk.tags)
 
     def test_read_tags__mp3(self):
         trk = audiofile.read_track(TRACK_2_PATH)

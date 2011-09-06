@@ -1,13 +1,5 @@
-from mutagen import mp3, id3
-import logging
-import StringIO
-import shutil
-
 from . import AudioFile
-from audiobatch.model import track
-
-_LOGGER = logging.getLogger()
-
+from mutagen import mp3, id3
 
 EXTENSIONS = ['mp3']
 

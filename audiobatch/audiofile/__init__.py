@@ -143,8 +143,8 @@ class AudioFile( object ):
                 continue
             for common_name in common_names:
                 mapping = self._mapping[common_name]
-                if len(mapping) == 1:
-                    raw_value = self._mutagen_obj[mapping[0]]
+                if isinstance(mapping, basestring):
+                    raw_value = self._mutagen_obj[mapping]
                 else:
                     raw_value = mapping[2](self._mutagen_obj)
                 tags.parse(common_name, raw_value)
@@ -157,8 +157,8 @@ class AudioFile( object ):
                 # mutagen can't handle our custom 'LenientDateTime' class
                 value = str(value)
             mapping = self._mapping[common_tag]
-            if len(mapping) == 1:
-                self._mutagen_obj[_mapping[0]] = value
+            if isinstance(mapping, basestring):
+                self._mutagen_obj[mapping] = value
             else:
                 mapping[1](value, self._mutagen_obj)
 
@@ -189,7 +189,7 @@ class AudioFile( object ):
     def _mutagen_name_to_common(self, mtg_name):
         common_names = []
         for k, v in self._mapping.items():
-            if v[0] == mtg_name:
+            if v[0] == mtg_name or v == mtg_name:
                 common_names.append(k)
         return common_names
             
