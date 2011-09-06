@@ -137,9 +137,9 @@ class AudioFile( object ):
             # a single mutegen element
             common_names = self._mutagen_name_to_common(mtg_name)
             if len(common_names) == 0:
-                _LOGGER.debug( "Can't read %s tag '%s' - " 
-                               "common mapping not found"
-                               % (self.kind, mtg_name) )
+                _LOGGER.warn( "Can't read %s tag '%s' - " 
+                              "common mapping not found"
+                              % (self.kind, mtg_name) )
                 continue
             for common_name in common_names:
                 mapping = self._mapping[common_name]

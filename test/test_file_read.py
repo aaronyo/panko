@@ -79,27 +79,27 @@ class TestRead( unittest.TestCase ):
         pprint(trk.raw_tags)
         self.assertEquals(TRACK_2_TAGS, trk.tags)
         
-#    def test_read_tags__mp4(self):
-#        trk = audiofile.read_track(TRACK_3_PATH)
-#        pprint(trk.raw_tags)
-#        self.assertEquals(TRACK_3_TAGS, trk.tags)
+    def test_read_tags__mp4(self):
+        trk = audiofile.read_track(TRACK_3_PATH)
+        pprint(trk.raw_tags)
+        self.assertEquals(TRACK_3_TAGS, trk.tags)
 
-#    def test_read_mod_time(self):
-#        trk = audiofile.read_track(TRACK_1_PATH)
-#        self.assertEquals( datetime.datetime(2011, 9, 4, 23, 34, 43),
-#                           trk.mod_time )
+    def test_read_mod_time(self):
+        trk = audiofile.read_track(TRACK_1_PATH)
+        self.assertEquals( datetime.datetime(2011, 9, 4, 23, 34, 43),
+                           trk.mod_time )
                            
-#    def test_read_folder_image_path(self):
-#        trk = audiofile.read_track(TRACK_1_PATH, cover_art='cover.jpg')
-#        self.assertTrue(trk.has_folder_cover_art)
-#        self.assertEquals( ALBUM_1_COVER_PATH,
-#                           os.path.join(TRACK_1_PATH, trk.folder_cover_art) )
+    def test_read_folder_image_path(self):
+        trk = audiofile.read_track(TRACK_1_PATH, cover_art='cover.jpg')
+        self.assertTrue(trk.has_folder_cover_art)
+        self.assertEquals( ALBUM_1_COVER_PATH,
+                           trk.folder_cover_art_path )
 
-#    def test_read_folder_image(self):
-#        img = audiofile.read_folder_image(TRACK_1_PATH, filename='cover.jpg')
-#        expected = hashlib.md5(open(ALBUM_1_COVER_PATH).read()).hexdigest()
-#        # compare hashes to keep failure messages short
-#        self.assertEquals( expected, hashlib.md5(img.bytes).hexdigest() )
+    def test_read_folder_image(self):
+        img = audiofile.read_folder_image(TRACK_1_PATH, filename='cover.jpg')
+        expected = hashlib.md5(open(ALBUM_1_COVER_PATH).read()).hexdigest()
+        # compare hashes to keep failure messages short
+        self.assertEquals( expected, hashlib.md5(img.bytes).hexdigest() )
 
 class TestWrite( unittest.TestCase ):
     def tearDown(self):
@@ -113,11 +113,11 @@ class TestWrite( unittest.TestCase ):
         audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
         self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
         
-#    def test_write__mp4(self):
-#        target = os.path.join(TEMP_DIR, 'test_write.m4a')
-#        shutil.copy(TRACK_3_PATH, target)
-#        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
-#        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
+    def test_write__mp4(self):
+        target = os.path.join(TEMP_DIR, 'test_write.m4a')
+        shutil.copy(TRACK_3_PATH, target)
+        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
+        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
         
     def test_image_embed_and_extract__mp3(self):
         target = os.path.join(TEMP_DIR, 'test_write_image.mp3')
