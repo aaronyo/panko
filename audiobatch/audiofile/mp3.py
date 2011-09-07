@@ -77,12 +77,14 @@ def _frame_part(idx, frame_class):
         parts[idx] = value
         frame = _join_frame(frame_class, *parts)
         mp3_obj.tags.add(frame)
+        
     def from_frame(mp3_obj):
         if frame_name not in mp3_obj:
              return None
         parts = _split_frame(mp3_obj[frame_name])
         print 'parts %s' % str(parts)
         return parts[idx]
+        
     return frame_name, to_frame, from_frame
 
 
