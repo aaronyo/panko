@@ -13,10 +13,13 @@ class BasicMetaConverter:
 
         if self._embed_folder_images:
             # Get the cover image if we have one.
-            # Only supports externally saved "cover.jpg"
+            # Only supports externally saved "cover.jpg" or "Folder.jpg"
             source_dir = os.path.dirname( source_path )
             cover_path = os.path.join( source_dir, "cover.jpg" )
+            if not os.path.isfile( cover_path ):
+                cover_path = os.path.join( source_dir, "Folder.jpg" )
             if os.path.isfile( cover_path ):
-                track_meta.add_image( cover_path )
+                track_meta.add_image( cover_path, subject='album_cover' )
+
 
         track_meta.write_file( target_path )

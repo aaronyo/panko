@@ -301,8 +301,8 @@ def _process_job( job_config,
 
             if conversion_enabled:
                 stream_converter = ShellStreamConverter( default_decode_seq,
-                                                         default_encode_seq,
-                                                         decoders_by_extension )
+                                                         decoders_by_extension, 
+                                                         default_encode_seq )
                 meta_converter = \
                     BasicMetaConverter( embed_folder_images = True)
                 for source_rel, stream_error, meta_error in \
