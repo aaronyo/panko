@@ -13,18 +13,7 @@ from .. import model
 _LOGGER = logging.getLogger()
 
 def open_audio_file(path):
-    from . import flac, mp3, mp4
-    _, ext = os.path.splitext( path )
-    ext = ext[1:] # drop the "."
-    if ext in flac.EXTENSIONS:
-        return flac.FLACFile( path )
-    elif ext in mp3.EXTENSIONS:
-        return mp3.MP3File( path )
-    elif ext in mp4.EXTENSIONS:
-        return mp4.MP4File( path )
-    else:
-        raise Exception( "File extension not recognized for file: %s"
-                         % path )
+    return AudioFile(path)
 
 def read_track(path, cover_art=None):
     audio_file = open_audio_file(path)
@@ -36,6 +25,7 @@ def read_track(path, cover_art=None):
             cover_art=None
     return model.track.Track( path,
                               mod_time,
+                              audio_file.translator,
                               audio_file.tags(),
                               audio_file.raw_tags(),
                               cover_art,
@@ -124,10 +114,23 @@ class AudioFile( object ):
     lifting of the byte level formatting.
     """
 
-    def __init__( self, path,  ):
+    def __init__( self, path ):
+        from . import flac, mp3, mp4
+        _, ext = os.path.splitext( path )
+        ext = ext[1:] # drop the "."
+        if ext in flac.EXTENSIONS:
+            self.translator = flac.FLACTranslator()
+        elif ext in mp3.EXTENSIONS:
+            return mp3.MP3File( path )
+        elif ext in mp4.EXTENSIONS:
+            return mp4.MP4File( path )
+        else:
+            raise Exception( "File extension not recognized for file: %s"
+                             % path )
+
         self.path = path
-        self._mutagen_obj = self._mutagen_class(path)
-        self._mapping = self._tag_mapping()
+        self._mutagen_obj = self.translator.mutagen_class(path)
+        self._mapping = self.translator.tag_mapping()
         
     def tags( self ):
         tags = model.track.TrackTagSet()
@@ -138,7 +141,7 @@ class AudioFile( object ):
             if len(common_names) == 0:
                 _LOGGER.warn( "Can't read %s tag '%s' - " 
                               "common mapping not found"
-                              % (self.kind, mtg_name) )
+                              % (self.translator.kind, mtg_name) )
                 continue
             for common_name in common_names:
                 mapping = self._mapping[common_name]
@@ -168,7 +171,7 @@ class AudioFile( object ):
         raise NotImplementedError
         
     def has_cover_art( self ):
-        raise NotImplementedError
+        self.translator.has_cover_art(self._mutagen_obj)
 
     def embed_cover_art( self, img ):
         self._embed_cover_art(img.bytes, img.full_mime_type())

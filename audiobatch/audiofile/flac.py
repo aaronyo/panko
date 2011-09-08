@@ -1,15 +1,12 @@
-from . import AudioFile
 from mutagen import flac
-
 
 EXTENSIONS = ['flac']
 
+class FLACTranslator( object ):
+    kind = 'FLAC'
+    mutagen_class = flac.FLAC
 
-class FLACFile( AudioFile ):
-    kind = 'MP3'
-    _mutagen_class = flac.FLAC
-    
-    def _tag_mapping(self):
+    def tag_mapping(self):
         return {
             "artists"            : "artist",
             "composers"          : "composer",
@@ -25,6 +22,6 @@ class FLACFile( AudioFile ):
             "album.release_date" : "date"
         }
 
-    def has_cover_art(self):
+    def has_cover_art(self, flac_obj):
         # FIXME: implement
         return False

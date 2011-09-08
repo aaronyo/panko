@@ -103,10 +103,11 @@ class PathImageRef( object ):
 
 
 class Track(object):
-    def __init__( self, path, mod_time, tags=None, raw_tags=None,
+    def __init__( self, path, mod_time, translator, tags=None, raw_tags=None,
                   folder_cover_art=None, embedded_cover_art=False ):
         self.path = path
         self.mod_time = mod_time
+        self.translator = translator
         self.tags = tags or TrackTagSet()
         self.raw_tags = raw_tags
         self.has_embedded_cover_art = embedded_cover_art
@@ -130,6 +131,50 @@ class Track(object):
     @property
     def has_folder_cover_art( self ):
         return bool(self.folder_cover_art)
+    
+    def pretty( self ):
+        def pretty_value(value):
+            if hasattr(value, '__iter__'):
+                return u", ".join([unicode(v) for v in value])
+            else:
+                return unicode(value)
+        
+        TagRow = collections.namedtuple('TagRow', "common raw value")
+        raw_tags = dict(self.raw_tags)
+        tags = sorted(self.tags.flat().items())
+        rows = []
+        mapping = self.translator.tag_mapping()
+        for tag, value in tags:
+            rows.append( TagRow(tag, mapping[tag], pretty_value(value)) )
+            raw_tags.pop(mapping[tag])
+            
+        raw_tags = sorted(raw_tags.items())
+        for raw_tag, value in raw_tags:
+            rows.append( TagRow('(unrecognized)', raw_tag, pretty_value(value)) )
+        
+        pretty_str = ""
+        
+        lengths = [(len(c), len(r), len(v)) for c, r, v in rows]
+        col_lengths = zip(*lengths)
+        pad = [ max(l)+1 for l in col_lengths ]
+
+        for row in rows:
+            pretty_str += "%-*s: %-*s: %s\n" \
+                % (pad[0], row.common, pad[1], row.raw, row.value)
+        
+        return pretty_str
+        
+    def __repr__( self ):
+        representation = \
+"""%(path)s
+%(mod_time)s
+%(tags)s
+%(raw_tags)s
+%(has_embedded_cover_art)s
+%(folder_cover_art)s""" % self.__dict__
+
+        
+        return representation
 
     def __eq__( self, other ):
         return ( self.id == other.id )
