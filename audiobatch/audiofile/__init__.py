@@ -121,7 +121,7 @@ class AudioFile( object ):
         if ext in flac.EXTENSIONS:
             self.translator = flac.FLACTranslator()
         elif ext in mp3.EXTENSIONS:
-            return mp3.MP3File( path )
+            self.translator = mp3.MP3Translator()
         elif ext in mp4.EXTENSIONS:
             return mp4.MP4File( path )
         else:
@@ -163,21 +163,16 @@ class AudioFile( object ):
                 self._mutagen_obj[mapping] = value
             else:
                 mapping[1](value, self._mutagen_obj)
-
-    def _embed_cover_art( self, bytes, mime_type ):
-        raise NotImplementedError
-
-    def _extract_cover_art( self ):
-        raise NotImplementedError
         
     def has_cover_art( self ):
         self.translator.has_cover_art(self._mutagen_obj)
 
     def embed_cover_art( self, img ):
-        self._embed_cover_art(img.bytes, img.full_mime_type())
+        self.translator.embed_cover_art( self.mutagen_obj,
+                                         img.bytes, img.full_mime_type() )
 
     def extract_cover_art( self ):
-        return Image(* self._extract_cover_art())
+        return Image( * self.translator.extract_cover_art(self._mutagen_obj) )
 
     def clear_tags( self ):
         self._mutagen_obj.delete()

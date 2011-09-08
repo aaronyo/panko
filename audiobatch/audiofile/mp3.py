@@ -1,15 +1,14 @@
-from . import AudioFile
 from mutagen import mp3, id3
 
 
 EXTENSIONS = ['mp3']
 
 
-class MP3File( AudioFile ):
+class MP3Translator( object ):
     kind = 'MP3'
-    _mutagen_class = mp3.MP3
+    mutagen_class = mp3.MP3
     
-    def _tag_mapping(self):
+    def tag_mapping(self):
         return {
             "artists"            : _frame(id3.TPE1),
             "composers"          : _frame(id3.TCOM),
@@ -25,21 +24,21 @@ class MP3File( AudioFile ):
             "album.release_date" : _frame(id3.TDRC)
         }
     
-    def _embed_cover_art(self, bytes, mime_type):
+    def embed_cover_art(self, mp3_obj, bytes, mime_type):
         id3_cover_art_code = 3
         apicFrame = id3.APIC( encoding = 3,
                               mime = mime_type,
                               type = id3_cover_art_code,
                               desc = 'cover',
                               data = bytes )
-        self._mutagen_obj.tags.add( apicFrame )        
+        mp3_obj.tags.add( apicFrame )        
 
-    def _extract_cover_art(self):
-        art = self._mutagen_obj[id3.APIC.__name__+':cover']
+    def extract_cover_art(self, mp3_obj):
+        art = mp3_obj[id3.APIC.__name__+':cover']
         return art.data, art.mime
 
-    def has_cover_art(self):
-        return id3.APIC.__name__+':cover' in self._mutagen_obj
+    def has_cover_art(self, mp3_obj):
+        return id3.APIC.__name__+':cover' in mp3_obj
 
 
 def _frame(frame_class):
@@ -82,7 +81,6 @@ def _frame_part(idx, frame_class):
         if frame_name not in mp3_obj:
              return None
         parts = _split_frame(mp3_obj[frame_name])
-        print 'parts %s' % str(parts)
         return parts[idx]
         
     return frame_name, to_frame, from_frame

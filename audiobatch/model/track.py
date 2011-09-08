@@ -135,7 +135,9 @@ class Track(object):
     def pretty( self ):
         def pretty_value(value):
             if hasattr(value, '__iter__'):
-                return u", ".join([unicode(v) for v in value])
+                return u", ".join([pretty_value(v) for v in value])
+            elif isinstance(value, basestring):
+                return u'"%s"' % value
             else:
                 return unicode(value)
         
@@ -145,8 +147,14 @@ class Track(object):
         rows = []
         mapping = self.translator.tag_mapping()
         for tag, value in tags:
-            rows.append( TagRow(tag, mapping[tag], pretty_value(value)) )
-            raw_tags.pop(mapping[tag])
+            raw_tag = mapping[tag]
+            if hasattr(raw_tag, '__iter__'):
+                raw_tag = raw_tag[0]
+            rows.append( TagRow(tag, raw_tag, pretty_value(value)) )
+            try:
+                raw_tags.pop(raw_tag)
+            except KeyError:
+                pass #Tag must be a multi-value tag -- can't pop twice
             
         raw_tags = sorted(raw_tags.items())
         for raw_tag, value in raw_tags:
