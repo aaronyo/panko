@@ -3,7 +3,6 @@ from mutagen import mp3, id3
 
 EXTENSIONS = ['mp3']
 
-
 class MP3Translator( object ):
     kind = 'MP3'
     mutagen_class = mp3.MP3

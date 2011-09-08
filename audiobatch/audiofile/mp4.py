@@ -1,15 +1,14 @@
 from mutagen import mp4
-from . import AudioFile
 
 
 EXTENSIONS = ['m4a', 'mp4']
 
 
-class MP4File( AudioFile ):
+class MP4Translator( object ):
     kind = 'MP4'
-    _mutagen_class = mp4.MP4
+    mutagen_class = mp4.MP4
 
-    def _tag_mapping(self):
+    def tag_mapping(self):
         # reference: http://code.google.com/p/mp4v2/wiki/iTunesMetadata#Sources
         return {
             "album.artists"      : "aART",
@@ -33,18 +32,18 @@ class MP4File( AudioFile ):
         'image/png'  : mp4.MP4Cover.FORMAT_PNG
     }
 
-    def _embed_cover_art(self, bytes, mime_type):
+    def embed_cover_art(self, mp4_obj, bytes, mime_type):
         fmt = self._image_formats[mime_type]
-        self._mutagen_obj['covr'] = [mp4.MP4Cover(bytes, fmt)]
+        mp4_obj['covr'] = [mp4.MP4Cover(bytes, fmt)]
 
-    def _extract_cover_art(self):
-        art = self._mutagen_obj['covr'][0]
+    def extract_cover_art(self, mp4_obj):
+        art = mp4_obj['covr'][0]
         for mime, mp4_fmt in self._image_formats.items():
             if mp4_fmt == art.imageformat:
                 return art, mime
 
-    def has_cover_art(self):
-        return 'covr' in self._mutagen_obj.tags
+    def has_cover_art(self, mp4_obj):
+        return 'covr' in mp4_obj
 
 
 def _part(idx, mp4_tag_name):

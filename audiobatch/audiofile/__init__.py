@@ -123,7 +123,7 @@ class AudioFile( object ):
         elif ext in mp3.EXTENSIONS:
             self.translator = mp3.MP3Translator()
         elif ext in mp4.EXTENSIONS:
-            return mp4.MP4File( path )
+            self.translator = mp4.MP4Translator()
         else:
             raise Exception( "File extension not recognized for file: %s"
                              % path )
@@ -169,10 +169,10 @@ class AudioFile( object ):
                 mapping[1](value, self._mutagen_obj)
         
     def has_cover_art( self ):
-        self.translator.has_cover_art(self._mutagen_obj)
+        return self.translator.has_cover_art(self._mutagen_obj)
 
     def embed_cover_art( self, img ):
-        self.translator.embed_cover_art( self.mutagen_obj,
+        self.translator.embed_cover_art( self._mutagen_obj,
                                          img.bytes, img.full_mime_type() )
 
     def extract_cover_art( self ):
