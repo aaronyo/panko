@@ -149,7 +149,12 @@ class Track(object):
         for tag, value in tags:
             raw_tag = mapping[tag]
             if hasattr(raw_tag, '__iter__'):
-                raw_tag = raw_tag[0]
+                if isinstance(raw_tag[1], basestring):
+                    for r in raw_tag:
+                        if r in raw_tags:
+                            raw_tag = r; break
+                else:
+                    raw_tag = raw_tag[0]
             rows.append( TagRow(tag, raw_tag, pretty_value(value)) )
             try:
                 raw_tags.pop(raw_tag)

@@ -14,9 +14,9 @@ class FLACTranslator( object ):
             "isrc"               : "isrc",
             "title"              : "title",
             "track_number"       : "tracknumber",
-            "track_total"        : "tracktotal",
+            "track_total"        : ("tracktotal", "totaltracks"),
             "disc_number"        : "discnumber",
-            "disc_total"         : "disctotal",
+            "disc_total"         : ("disctotal", "totaldiscs"),
             "album.title"        : "album",
             "album.artists"      : "albumartist",
             "album.release_date" : "date"
