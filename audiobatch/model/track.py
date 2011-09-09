@@ -165,15 +165,15 @@ class Track(object):
         for raw_tag, value in raw_tags:
             rows.append( TagRow('(unrecognized)', raw_tag, pretty_value(value)) )
         
-        pretty_str = ""
+        pretty_str = u""
         
         lengths = [(len(c), len(r), len(v)) for c, r, v in rows]
         col_lengths = zip(*lengths)
         pad = [ max(l)+1 for l in col_lengths ]
 
         for row in rows:
-            pretty_str += "%-*s: %-*s: %s\n" \
-                % (pad[0], row.common, pad[1], row.raw, row.value)
+            pretty_str += u"%-*s: %-*s: %s\n" \
+                % (pad[0], row.common, pad[1], unicode(row.raw, 'latin-1'), row.value)
         
         return pretty_str
         
