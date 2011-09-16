@@ -4,24 +4,13 @@ EXTENSIONS = ['flac']
 
 class FLACTranslator( object ):
     kind = 'FLAC'
-    mutagen_class = flac.FLAC
 
-    def tag_mapping(self):
-        return {
-            "artists"            : "artist",
-            "composers"          : "composer",
-            "genres"             : "genre",
-            "isrc"               : "isrc",
-            "title"              : "title",
-            "track_number"       : "tracknumber",
-            "track_total"        : ("tracktotal", "totaltracks"),
-            "disc_number"        : "discnumber",
-            "disc_total"         : ("disctotal", "totaldiscs"),
-            "album.title"        : "album",
-            "album.artists"      : "albumartist",
-            "album.release_date" : "date"
-        }
+    def _set_file_tag(self, format_key, value, mtg_file):
+        mtg_file[format_key.name] = value
+        
+    def _get_file_tag(self, format_key, mtg_file):
+        return mtg_file.get(format_key.name, None)
 
-    def has_cover_art(self, flac_obj):
-        # FIXME: implement
-        return False
+    def open_mtg_file(self, path):
+        return flac.FLAC(path)
+

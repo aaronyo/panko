@@ -31,76 +31,24 @@ class TagSet(collections.MutableMapping):
     def __repr__(self):
         return '%s( %s ) ' % ( self.__class__.__name__, repr(self._tags) )
 
-    def parse(self, dotted_key, value):
-            key, sub_key = (dotted_key.split('.') + [None])[:2]
-            if sub_key:
-                if key not in self._tags:
-                    self._tags[key] = self.tag_spec[key]()
-                sub_spec = self.tag_spec[key].tag_spec[sub_key]
-                self._tags[key][sub_key] = \
-                    TagSet._apply_type_spec(sub_spec, value)
-            else:
-                self._tags[key] = \
-                    TagSet._apply_type_spec(self.tag_spec[key], value)
-
-    def flat(self):
-        return self.flatten(self._tags)
-
-    @staticmethod
-    def flatten(tags):
-        flat_tags = {}
-        for k, v in tags.items():
-            if isinstance( v, collections.Mapping ):
-                for sub_k, sub_v in v.items():
-                    flat_tags[k+'.'+sub_k] = sub_v
-            else:
-                flat_tags[k] = v
-        return flat_tags 
-
-    @staticmethod
-    def _apply_type_spec(type_spec, value):
-        if type(type_spec) == list:
-            return [TagSet._apply_type_spec(type_spec[0], v) for v in value]
-        else:
-            if hasattr(type_spec, 'parse'):
-                parse_func = type_spec.parse
-            else:
-                parse_func = type_spec
-            if hasattr(value, '__getitem__') and not isinstance( value,
-                                                                 basestring ):
-                return parse_func(unicode(value[0]))
-            else:
-                return parse_func(unicode(value))
+    def parse(self, key, value):
+        
+            self._tags[key] = \
+                TagSet._apply_type_spec(self.tag_spec[key], value)
 
 
-class AlbumTagSet(TagSet):
-    tag_spec = { \
-        "artists": [unicode],
-        "composers": [unicode],
-        "title": unicode,
-        "release_date": LenientDateTime
-    }
-
-class TrackTagSet(TagSet):
-    tag_spec = { \
-        "artists": [unicode],
-        "title": unicode,
-        "track_number": int,
-        "track_total": int,
-        "disc_number": int,
-        "disc_total": int,
-        "composers": [unicode],
-        "genres": [unicode],
-        "isrc": str,
-        "album": AlbumTagSet
-    }        
-
-
-class PathImageRef( object ):
-    def __init__(self, path):
-        self.path = path
-        self.kind = 'path'
-
+def decode_strs(value):
+    if hasattr(value, '__iter__'):
+        return [decode_strs(v) for v in value]
+    elif isinstance(value, str):
+        try:
+            return unicode(value, 'utf-8')
+        except:
+            # We don't know what the encoding is, so just
+            # provide the escaped string.
+            return value.__repr__()[1:-1]
+    else:
+        return value     
 
 class Track(object):
     def __init__( self, path, mod_time, translator, tags=None, raw_tags=None,
@@ -143,10 +91,14 @@ class Track(object):
         
         TagRow = collections.namedtuple('TagRow', "common raw value")
         raw_tags = dict(self.raw_tags)
-        tags = sorted(self.tags.flat().items())
+        tags = sorted(TrackTagSet.tag_spec.keys())
         rows = []
         mapping = self.translator.tag_mapping()
-        for tag, value in tags:
+        for tag in tags:
+            value = self.tags.flat().get(tag, None)
+            if value == None:
+                rows.append( TagRow(tag, "(not found)", "(not found)") )
+                continue
             raw_tag = mapping[tag]
             if hasattr(raw_tag, '__iter__'):
                 if isinstance(raw_tag[1], basestring):
@@ -155,7 +107,7 @@ class Track(object):
                             raw_tag = r; break
                 else:
                     raw_tag = raw_tag[0]
-            rows.append( TagRow(tag, raw_tag, pretty_value(value)) )
+            rows.append( TagRow(tag, decode_strs(raw_tag), pretty_value(value)) )
             try:
                 raw_tags.pop(raw_tag)
             except KeyError:
@@ -163,6 +115,9 @@ class Track(object):
             
         raw_tags = sorted(raw_tags.items())
         for raw_tag, value in raw_tags:
+            print raw_tag.__repr__()
+            value=decode_strs(value)
+            raw_tag=decode_strs(raw_tag)
             rows.append( TagRow('(unrecognized)', raw_tag, pretty_value(value)) )
         
         pretty_str = u""
@@ -173,7 +128,8 @@ class Track(object):
 
         for row in rows:
             pretty_str += u"%-*s: %-*s: %s\n" \
-                % (pad[0], row.common, pad[1], unicode(row.raw, 'latin-1'), row.value)
+                % (pad[0], row.common, pad[1], row.raw, row.value)
+#                % (pad[0], row.common, pad[1], unicode(row.raw, 'latin-1'), row.value)
         
         return pretty_str
         

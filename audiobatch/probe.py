@@ -12,7 +12,7 @@ def parse_args():
 def main():
     args = parse_args()
     for file_path in args.files:
-        print audiofile.read_track(file_path).pretty()
+        print audiofile.load(file_path).tags
 
 if __name__ == '__main__':
     main()

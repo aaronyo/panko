@@ -1,11 +1,18 @@
 import datetime
 
-class LenientDateTime( object ):
+class FlexDateTime( object ):
     @staticmethod
     def parse( text, allow_invalids = True):
         year, month, day, hour, min, sec = [None] * 6
         # Replace missing vals with None
-        date, time = ( tuple(text.split(" ")) + (None, None) )[:2]
+        if " " in text:
+            date, time = ( tuple(text.split(" ")) + (None, None) )[:2]
+        elif "T" in text:
+            date, time = ( tuple(text.split("T")) + (None, None) )[:2] 
+        else:
+            date = text
+            time = None
+            
         if date != None:
             year, month, day = \
                 (tuple(date.split("-")) + (None, None, None) )[:3]
@@ -13,15 +20,15 @@ class LenientDateTime( object ):
             hour, min, sec = \
                 ( tuple(time.split("-")) + (None, None, None) )[:3]
         
-        return LenientDateTime( *( int(x) if x else None for x
-                             in (year, month, day, hour, min, sec) ),
+        return FlexDateTime( *( int(x) if x else None for x
+                             in (year, month, day)), #, hour, min, sec) ),
                            allow_invalids = allow_invalids )
 
     _formats = ['%04i'] + ['%02i'] * 5
     _seps = ['-', '-', ' ', ':', ':', 'x']
 
     def date(self):
-        return LenientDateTime(self.year, self.month, self.day)
+        return FlexDateTime(self.year, self.month, self.day)
 
     def __str__(self):
         vals = [ self.year, self.month, self.day,

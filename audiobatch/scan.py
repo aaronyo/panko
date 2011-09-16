@@ -4,7 +4,7 @@ def scan( self,
           exclude_patterns = None,
           return_rel_path = True ):
     ''' Return paths of audio files found beneath the designated base directory '''
-
+    exclude_patterns = exclude_patterns or []
     paths = set()
     for path, _, files in os.walk(base_dir_abs):
         for name in files:
@@ -17,9 +17,7 @@ def scan( self,
             for pattern in patterns:
                 if fnmatch.fnmatch(name, pattern):
                     absolute_path = os.path.join(path, name)
-                    if not TrackRepository._should_exclude(
-                        absolute_path,
-                        exclude_patterns ):
+                    if not _exclude_path(absolute_path, exclude_patterns):
                         if return_rel_path:
                             paths.add( os.path.relpath( absolute_path,
                                                         base_dir_abs ) )
@@ -28,3 +26,6 @@ def scan( self,
                     break
 
     return paths
+
+def _exclude_path( path, exclude_patterns ):
+    return any(fnmatch.fnmatch( path, pat or '' ) for pat in exclude_patterns)

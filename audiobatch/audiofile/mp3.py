@@ -1,87 +1,66 @@
 from mutagen import mp3, id3
+from . import wrapper
 
 
 EXTENSIONS = ['mp3']
 
-class MP3Translator( object ):
+class MP3Wrapper( wrapper.MutagenWrapper ):
     kind = 'MP3'
-    mutagen_class = mp3.MP3
     
-    def tag_mapping(self):
-        return {
-            "artists"            : _frame(id3.TPE1),
-            "composers"          : _frame(id3.TCOM),
-            "genres"             : _frame(id3.TCON),
-            "isrc"               : _frame(id3.TSRC),
-            "title"              : _frame(id3.TIT2),
-            "track_number"       : _frame_part(0, id3.TRCK),
-            "track_total"        : _frame_part(1, id3.TRCK),
-            "disc_number"        : _frame_part(0, id3.TPOS),
-            "disc_total"         : _frame_part(1, id3.TPOS),
-            "album.title"        : _frame(id3.TALB),
-            "album.artists"      : _frame(id3.TPE2),
-            "album.release_date" : _frame(id3.TDRC)
-        }
+    def __init__(self, path):
+        super(MP3Wrapper, self).__init__( mp3.MP3(path) )
+
+    def set_tag(self, loc_spec, value):
+        if loc_spec.part != None:
+            frame_text = _get_frame(loc_spec.name)
+            parts = list(_split_frame(frame_text)) if frame_text else None, None
+            parts[idx] = value
+            value = _join_frame_text(frame_class, *parts)
+        self._set_frame(value, frame_name, self.mtg_file )
+
+    def get_tag(self, loc_spec):
+        frame_text = self._get_frame(loc_spec.raw_name, self.mtg_file)
+        if frame_text and loc_spec.part != None:
+            parts = _split_frame_text(frame_text)
+            frame_text = parts[loc_spec.part]
+        return frame_text
     
-    def embed_cover_art(self, mp3_obj, bytes, mime_type):
+    def embed_cover_art(self, bytes, mime_type):
         id3_cover_art_code = 3
         apicFrame = id3.APIC( encoding = 3,
                               mime = mime_type,
                               type = id3_cover_art_code,
                               desc = 'cover',
                               data = bytes )
-        mp3_obj.tags.add( apicFrame )        
+        self.mtg_file.tags.add( apicFrame )        
 
-    def extract_cover_art(self, mp3_obj):
-        art = mp3_obj[id3.APIC.__name__+':cover']
+    def extract_cover_art(self):
+        art = self.mtg_file[id3.APIC.__name__+':cover']
         return art.data, art.mime
 
-    def has_cover_art(self, mp3_obj):
-        return id3.APIC.__name__+':cover' in mp3_obj
+    def has_cover_art(self):
+        return id3.APIC.__name__+':cover' in self.mtg_file
 
-
-def _frame(frame_class):
-    frame_name = frame_class.__name__
-    def to_frame(value, mp3_obj):
+    def _set_frame(self, value, frame_name):
+        frame_class = id3.__dict__[frame_name]
         frame = frame_class( encoding=3, text=value )
-        mp3_obj.tags.add( frame )            
-    def from_frame(mp3_obj):
-        if frame_name not in mp3_obj:
+        self.mtg_file.tags.add( frame )
+
+    def _get_frame(self, frame_name, mtg_file):
+        if frame_name not in mtg_file:
              return None
-        return mp3_obj[frame_class.__name__].text            
-    return frame_name, to_frame, from_frame
+        return unicode(self.mtg_file[frame_name])            
 
+def _split_frame_text(text):
+    vals = text.split("/")
+    return vals[0], vals[1] if len(vals) > 1 else None
 
-def _frame_part(idx, frame_class):
-    frame_name = frame_class.__name__
-
-    def _split_frame(frame):
-        if not frame:
-            return None, None
-        vals = frame.text[0].split("/")
-        return vals[0], vals[1] if len(vals) > 1 else None
-
-    def _join_frame(frame_class, pos, total):
-        if not pos and not total:
-            text = None
-        else:
-            pos = pos or "" 
-            total =  "/%s" % total if total else ""
-            text = u"%s%s" % ( pos, total )
-        return frame_class( encoding=3, text=text ) if text else None
-
-    def to_frame(value, mp3_obj):
-        parts = list( _split_frame(mp3_obj.get(frame_name, None)) )
-        parts[idx] = value
-        frame = _join_frame(frame_class, *parts)
-        mp3_obj.tags.add(frame)
-        
-    def from_frame(mp3_obj):
-        if frame_name not in mp3_obj:
-             return None
-        parts = _split_frame(mp3_obj[frame_name])
-        return parts[idx]
-        
-    return frame_name, to_frame, from_frame
-
+def _join_frame_text(frame_class, pos, total):
+    if not pos and not total:
+        text = None
+    else:
+        pos = pos or "" 
+        total =  "/%s" % total if total else ""
+        text = u"%s%s" % ( pos, total )
+    return text
 

@@ -11,9 +11,9 @@ class MP4Translator( object ):
     def tag_mapping(self):
         # reference: http://code.google.com/p/mp4v2/wiki/iTunesMetadata#Sources
         return {
-            "album.artists"      : "aART",
-            "album.title"        : "\xa9alb",
-            "album.release_date" : "\xa9day",
+            "album_artists"      : "aART",
+            "album_title"        : "\xa9alb",
+            "album_release_date" : "\xa9day",
             "artists"            : "\xa9ART",
             "composers"          : "\xa9wrt",
             "disc_number"        : _part(0, 'disk'),
@@ -22,6 +22,9 @@ class MP4Translator( object ):
             "track_total"        : _part(1, 'trkn'),
             "genres"             : "\xa9gen",
             "title"              : "\xa9nam",
+            "is_compilation"     : "cpil",
+            "bpm"                : "tmpo",
+            "encoding_tool"      : "\xa9too",
             # Non standard tags.  (btw, standards for mp4 = what iTunes does)
             # FIXME: what does dbPoweramp use when writing isrc?
             "isrc"               : "----:com.apple.iTunes:ISRC"
