@@ -77,7 +77,6 @@ disc_total:
     flac: [disctotal, totaldiscs]
 """
 
-# genres*						unicode[]			\xa9gen		TCON   		genre
 # groupings						unicode[]       	\xa9grp		TIT1
 # comment 						unicode				\xa9cmt		COMM::'eng'
 # bpm								int					tmpo		TBPM

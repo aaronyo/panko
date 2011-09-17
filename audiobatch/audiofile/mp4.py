@@ -7,28 +7,6 @@ EXTENSIONS = ['m4a', 'mp4']
 class MP4Translator( object ):
     kind = 'MP4'
     mutagen_class = mp4.MP4
-
-    def tag_mapping(self):
-        # reference: http://code.google.com/p/mp4v2/wiki/iTunesMetadata#Sources
-        return {
-            "album_artists"      : "aART",
-            "album_title"        : "\xa9alb",
-            "album_release_date" : "\xa9day",
-            "artists"            : "\xa9ART",
-            "composers"          : "\xa9wrt",
-            "disc_number"        : _part(0, 'disk'),
-            "disc_total"         : _part(1, 'disk'),
-            "track_number"       : _part(0, 'trkn'),
-            "track_total"        : _part(1, 'trkn'),
-            "genres"             : "\xa9gen",
-            "title"              : "\xa9nam",
-            "is_compilation"     : "cpil",
-            "bpm"                : "tmpo",
-            "encoding_tool"      : "\xa9too",
-            # Non standard tags.  (btw, standards for mp4 = what iTunes does)
-            # FIXME: what does dbPoweramp use when writing isrc?
-            "isrc"               : "----:com.apple.iTunes:ISRC"
-        }
         
     _image_formats = {
         'image/jpeg' : mp4.MP4Cover.FORMAT_JPEG,

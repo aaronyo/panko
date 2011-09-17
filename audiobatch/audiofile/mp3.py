@@ -10,19 +10,19 @@ class MP3Wrapper( wrapper.MutagenWrapper ):
     def __init__(self, path):
         super(MP3Wrapper, self).__init__( mp3.MP3(path) )
 
-    def set_tag(self, loc_spec, value):
-        if loc_spec.part != None:
-            frame_text = _get_frame(loc_spec.name)
+    def set_tag(self, location, value):
+        if location.part != None:
+            frame_text = _get_frame(location.name)
             parts = list(_split_frame(frame_text)) if frame_text else None, None
             parts[idx] = value
             value = _join_frame_text(frame_class, *parts)
         self._set_frame(value, frame_name, self.mtg_file )
 
-    def get_tag(self, loc_spec):
-        frame_text = self._get_frame(loc_spec.raw_name, self.mtg_file)
-        if frame_text and loc_spec.part != None:
+    def get_tag(self, location):
+        frame_text = self._get_frame(location.name, self.mtg_file)
+        if frame_text and location.part != None:
             parts = _split_frame_text(frame_text)
-            frame_text = parts[loc_spec.part]
+            frame_text = parts[location.part]
         return frame_text
     
     def embed_cover_art(self, bytes, mime_type):
