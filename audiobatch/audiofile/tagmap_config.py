@@ -176,6 +176,7 @@ itunes_purchase_country_code:
 isrc:
     type: str
     mp4: "----:com.apple.iTunes:ISRC"
+    mp3: TSRC
     flac: isrc
 
 itunes_cddb_id:

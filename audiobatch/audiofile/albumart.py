@@ -32,10 +32,8 @@ class AlbumArt( object ):
     def dimensions( self ):
         return self._pil_image().size
 
-    def mime_type( self, shorten=False ):
-        return self.format
-
-    def full_mime_type(self):
+    @property
+    def mime_type(self):
         return "image/" + self.format.lower()
 
     def conform_size( self, max_side_length ):

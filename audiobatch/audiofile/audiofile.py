@@ -6,6 +6,7 @@ import collections
 from . import tagmap
 from .fileio import mp3, flac, mp4
 from . import albumart
+from ..model import timeutil
 
 _default_handler = None
 #FIXME: aboyd: load or open?
@@ -62,19 +63,54 @@ class AudioFile( object ):
         self.tags = None
         self.locations = None
         self.folder_cover_art = None
-        self.embedded_cover_art = None
-        self._load_tags()
+        self.has_embedded_cover_art = None
+        self._embedded_cover_art = None
+        file_io = self.file_io_class(self.path)
+        self._load_tags(file_io)
+        self._discover_art(file_io)
         
     def rows(self):
-        rows_ = [(n, self.locations[n], self.tags[n]) for n in sorted(self.tags)]
-        rows_.extend((None, self.unkown_locations[n], self.unkown_tags[n]) for n in sorted(self.unkown_tags))
+        print self.locations
+        rows_ = [(n, self.locations.get(n, None), self.tags[n]) for n in sorted(self.tags)]
+        rows_.extend((None, self.unkown_locations.get(n, None), self.unkown_tags[n]) for n in sorted(self.unkown_tags))
         return rows_
-        
+    
+    @property
     def has_folder_cover_art(self):
         return self.folder_cover_path != None
+    
+    def embed_cover_art(self, art):
+        self._embedded_cover_art = art
+        self.has_embedded_cover_art = True
         
-    def _load_tags(self):
+    def extract_cover_art(self):
+        if self._embedded_cover_art:
+            return self._embedded_cover_art
+        else:
+            file_io = self.file_io_class(self.path)
+            bytes, mime_type = file_io.extract_cover_art()
+            if bytes:
+                return albumart.AlbumArt(bytes, mime_type)
+        
+    def save(self):        
+        art = self._embedded_cover_art
+        assert(self.has_embedded_cover_art or not art)
         file_io = self.file_io_class(self.path)
+        file_io.clear_tags()
+        for tag_name, location, value in self.rows():
+            if type(value) is timeutil.FlexDateTime:
+                value = str(value)
+            if not location:
+                location = self.loc_map[tag_name][0]
+            file_io.set_tag(location, value)
+        if art:
+            file_io.embed_cover_art(art.bytes, art.mime_type)
+        file_io.save()
+        
+    def _discover_art(self, file_io):
+        self.has_embedded_cover_art = file_io.has_cover_art()
+        
+    def _load_tags(self, file_io):
         self.tags = {}
         self.locations = {}
         self.unkown_tags = {}
