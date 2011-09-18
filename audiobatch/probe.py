@@ -17,7 +17,7 @@ def main():
 def format_rows(rows):
     def format_value(value):
         if hasattr(value, '__iter__'):
-            return u", ".join([format(v) for v in value])
+            return u", ".join([format_value(v) for v in value])    
         elif isinstance(value, basestring):
             return u'"%s"' % value
         else:
