@@ -1,16 +1,26 @@
 from datetime import datetime
 import os
 import stat
-from . import tagmap
-from .fileio import mp3, flac, mp4
 import collections
 
+from . import tagmap
+from .fileio import mp3, flac, mp4
+from . import albumart
+
 _default_handler = None
-def load(file_path):
+#FIXME: aboyd: load or open?
+def load(path, cover_art=None):
     global _default_handler
     if not _default_handler:
         _default_handler = AudioFileHandler()
-    return _default_handler.load(file_path)
+    return _default_handler.load(path, cover_art)
+
+def load_folder_art(path, filename=None):
+    dir_ = os.path.dirname(path)
+    img_path = os.path.join(dir_, filename)
+    if not os.path.exists(img_path):
+        return None
+    return albumart.load(img_path)
 
 class AudioFileHandler(object):
     
@@ -20,16 +30,20 @@ class AudioFileHandler(object):
         else:
             self.tag_map = tagmap.load(config)
             
-    def load(self, path):
-        return AudioFile(path, self.tag_map)
+    def load(self, path, cover_art=None):
+        return AudioFile(path, self.tag_map, cover_art)
 
 MappedTag = collections.namedtuple("MappedTag", "location, value")
 
 class AudioFile( object ):
     
-    def __init__(self, path, tag_map):
+    def __init__(self, path, tag_map, cover_art=None):
         self.path = path
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
+        if cover_art:
+            self.folder_cover_path = os.path.join(os.path.dirname(path), cover_art)
+            if not os.path.exists(self.folder_cover_path):
+                self.folder_cover_path=None
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
         if self.ext in mp3.EXTENSIONS:
@@ -49,14 +63,17 @@ class AudioFile( object ):
         self.locations = None
         self.folder_cover_art = None
         self.embedded_cover_art = None
-        self._load()
+        self._load_tags()
         
     def rows(self):
         rows_ = [(n, self.locations[n], self.tags[n]) for n in sorted(self.tags)]
         rows_.extend((None, self.unkown_locations[n], self.unkown_tags[n]) for n in sorted(self.unkown_tags))
         return rows_
         
-    def _load(self):
+    def has_folder_cover_art(self):
+        return self.folder_cover_path != None
+        
+    def _load_tags(self):
         file_io = self.file_io_class(self.path)
         self.tags = {}
         self.locations = {}
@@ -75,7 +92,7 @@ class AudioFile( object ):
         tags = {}
         for tag_name, tag_locs in self.loc_map.items():
             for loc in tag_locs:
-                if loc.key == unicode(key, 'latin-1'):
+                if loc.key == key:
                     text = file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
                     value = self._parse_tag( tag_type, text )
@@ -112,5 +129,5 @@ class AudioFile( object ):
         if not value:
             return value
         else:
-            return parse_func(unicode(value))        
+            return parse_func(unicode(value))
 

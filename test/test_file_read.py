@@ -6,8 +6,7 @@ import hashlib
 from pprint import pprint
 
 from audiobatch import audiofile
-from audiobatch.model.timeutil import LenientDateTime
-from audiobatch.model.track import TrackTagSet
+from audiobatch.model.timeutil import FlexDateTime
 
 AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
 AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
@@ -28,111 +27,106 @@ TRACK_3_PATH = os.path.join( AUDIO_DIR,
 
 TRACK_1_TAGS = { 
     'artists': ['Alex Lloyd'],
-    'title': 'Melting',
+    'titles': ['Melting'],
     'disc_number': 1,
     'track_number': 1,
     'disc_total': 1, 
     'track_total': 13,
     'isrc': 'AUEM09900036',
-    'album': { 
-        'artists': ['Alex Lloyd'],
-        'title': 'Black the Sun',
-        'release_date': LenientDateTime(1999, 8, 2)
-    }
+    'album_artists': ['Alex Lloyd'],
+    'album_titles': ['Black the Sun'],
+    'album_release_date': FlexDateTime(1999, 8, 2)
 }
 
 TRACK_2_TAGS = {
     'composers': ['Oscar Hammerstein II/Richard Rodgers/Richard Rodgers /'],
     'genres': ['Rock'],
-    'title': 'Tunnel Of Love',
+    'titles': ['Tunnel Of Love'],
     'disc_total': 1,
     'track_total': 7,
     'track_number': 1,
     'disc_number': 1,
+    'encoding_tool': 'iTunes 8.0.2',
     'artists': ['Dire Straits'],
-    'album': {
-        'release_date': LenientDateTime(1980),
-        'title': 'Making Movies'
-    }
+    'album_release_date': FlexDateTime(1980),
+    'album_titles': ['Making Movies']
 }
 
 TRACK_3_TAGS = {
     'genres': ['Jazz'],
-    'title': 'Celestial Blues',
+    'titles': ['Celestial Blues'],
     'track_total': 8,
     'track_number': 1,
     'artists': ['Gary Bartz'],
-    'album': {
-        'artists': ['Various'],
-        'title': 'Jazz Dance Classics Volume 1'
-    }
+    'encoding_tool': 'iTunes 8.2',
+    'is_compilation': True,
+    'album_artists': ['Various'],
+    'album_titles': ['Jazz Dance Classics Volume 1']
 }
 
 class TestRead( unittest.TestCase ):
     def test_read_tags__flac(self):
-        trk = audiofile.read_track(TRACK_1_PATH)
-        pprint(trk.raw_tags)
-        self.assertEquals(TRACK_1_TAGS, trk.tags)
+        af = audiofile.load(TRACK_1_PATH)
+        self.assertEquals(TRACK_1_TAGS, af.tags)
 
     def test_read_tags__mp3(self):
-        trk = audiofile.read_track(TRACK_2_PATH)
-        pprint(trk.raw_tags)
-        self.assertEquals(TRACK_2_TAGS, trk.tags)
+        self.maxDiff=None
+        af = audiofile.load(TRACK_2_PATH)
+        self.assertEquals(TRACK_2_TAGS, af.tags)
         
     def test_read_tags__mp4(self):
-        trk = audiofile.read_track(TRACK_3_PATH)
-        pprint(trk.raw_tags)
-        self.assertEquals(TRACK_3_TAGS, trk.tags)
+        af = audiofile.load(TRACK_3_PATH)
+        self.assertEquals(TRACK_3_TAGS, af.tags)
 
     def test_read_mod_time(self):
-        trk = audiofile.read_track(TRACK_1_PATH)
+        af = audiofile.load(TRACK_1_PATH)
         self.assertEquals( datetime.datetime(2011, 9, 4, 23, 34, 43),
-                           trk.mod_time )
+                           af.mod_time )
                            
     def test_read_folder_image_path(self):
-        trk = audiofile.read_track(TRACK_1_PATH, cover_art='cover.jpg')
-        self.assertTrue(trk.has_folder_cover_art)
+        af = audiofile.load(TRACK_1_PATH, cover_art='cover.jpg')
+        self.assertTrue(af.has_folder_cover_art)
         self.assertEquals( ALBUM_1_COVER_PATH,
-                           trk.folder_cover_art_path )
+                           af.folder_cover_path )
 
     def test_read_folder_image(self):
-        img = audiofile.read_folder_image(TRACK_1_PATH, filename='cover.jpg')
+        img = audiofile.load_folder_art(TRACK_1_PATH, filename='cover.jpg')
         expected = hashlib.md5(open(ALBUM_1_COVER_PATH).read()).hexdigest()
         # compare hashes to keep failure messages short
         self.assertEquals( expected, hashlib.md5(img.bytes).hexdigest() )
 
-class TestWrite( unittest.TestCase ):
-    def tearDown(self):
-        for f in os.listdir(TEMP_DIR):
-            f_path = os.path.join(TEMP_DIR, f)
-            os.unlink(f_path)
-                
-    def test_write__mp3(self):
-        target = os.path.join(TEMP_DIR, 'test_write.mp3')
-        shutil.copy(TRACK_2_PATH, target)
-        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
-        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
-        
-    def test_write__mp4(self):
-        target = os.path.join(TEMP_DIR, 'test_write.m4a')
-        shutil.copy(TRACK_3_PATH, target)
-        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
-        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
-        
-    def test_image_embed_and_extract__mp3(self):
-        target = os.path.join(TEMP_DIR, 'test_write_image.mp3')
-        shutil.copy(TRACK_2_PATH, target)
-        img = audiofile.read_folder_image(TRACK_1_PATH, "cover.jpg")
-        audiofile.embed_cover_art(target, img)
-        trk = audiofile.read_track(target)
-        self.assertTrue( trk.has_embedded_cover_art )
-        self.assertEquals( img, audiofile.extract_cover_art(target) )
-    
-    def test_image_embed_and_extract__mp4(self):
-        target = os.path.join(TEMP_DIR, 'test_write_image.m4a')
-        shutil.copy(TRACK_3_PATH, target)
-        img = audiofile.read_folder_image(TRACK_1_PATH, "cover.jpg")
-        audiofile.embed_cover_art(target, img)
-        trk = audiofile.read_track(target)
-        self.assertTrue( trk.has_embedded_cover_art )
-        self.assertEquals( img, audiofile.extract_cover_art(target) )
+#class TestWrite( unittest.TestCase ):
+#    def tearDown(self):
+#        for f in os.listdir(TEMP_DIR):
+#            f_path = os.path.join(TEMP_DIR, f)
+#            os.unlink(f_path)
+#                
+#    def test_write__mp3(self):
+#        target = os.path.join(TEMP_DIR, 'test_write.mp3')
+#        shutil.copy(TRACK_2_PATH, target)
+#        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
+#        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
+#        
+#    def test_write__mp4(self):
+#        target = os.path.join(TEMP_DIR, 'test_write.m4a')
+#        shutil.copy(TRACK_3_PATH, target)
+#        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
+#        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
+#        
+#    def test_image_embed_and_extract__mp3(self):
+#        target = os.path.join(TEMP_DIR, 'test_write_image.mp3')
+#        shutil.copy(TRACK_2_PATH, target)
+#        img = audiofile.read_folder_image(TRACK_1_PATH, "cover.jpg")
+#        audiofile.embed_cover_art(target, img)
+#        af = audiofile.load(target)
+#        self.assertTrue( trk.has_embedded_cover_art )
+#        self.assertEquals( img, audiofile.extract_cover_art(target) )
+#    
+#    def test_image_embed_and_extract__mp4(self):
+#        target = os.path.join(TEMP_DIR, 'test_write_image.m4a')
+#        shutil.copy(TRACK_3_PATH, target)
+#        img = audiofile.read_folder_image(TRACK_1_PATH, "cover.jpg")
+#        audiofile.embed_cover_art(target, img)
+#        af = audiofile.load(target)
+#        self.assertTrue( trk.has_embedded_cover_art )
+#        self.assertEquals( img, audiofile.extract_cover_art(target) )
