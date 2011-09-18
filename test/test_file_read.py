@@ -113,9 +113,9 @@ class TestWrite( unittest.TestCase ):
         target = os.path.join(TEMP_DIR, 'test_write.m4a')
         shutil.copy(TRACK_3_PATH, target)
         af = audiofile.load(target)
-        af.tags = TRACK_1_TAGS
+        af.tags = TRACK_2_TAGS
         af.save()
-        self.assertEquals( TRACK_1_TAGS, audiofile.load(target).tags )
+        self.assertEquals( TRACK_2_TAGS, audiofile.load(target).tags )
         
     def test_image_embed_and_extract__mp3(self):
         target = os.path.join(TEMP_DIR, 'test_write_image.mp3')
