@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import stat
 from . import tagmap
-from . import mp3
+from .fileio import mp3, flac, mp4
 import collections
 
 _default_handler = None
@@ -32,11 +32,17 @@ class AudioFile( object ):
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
-        self.loc_map = tag_map.locations[self.ext]
-        self.type_map = tag_map.tag_types
         if self.ext in mp3.EXTENSIONS:
-            self.mtg_wrapper_class = mp3.MP3Wrapper
-        self.kind = self.mtg_wrapper_class.kind
+            self.file_io_class = mp3.MP3IO
+        elif self.ext in flac.EXTENSIONS:
+            self.file_io_class = flac.FLACIO
+        elif self.ext in mp4.EXTENSIONS:
+            self.file_io_class = mp4.MP4IO
+            
+        self.loc_map = tag_map.locations[self.file_io_class.kind]
+        self.type_map = tag_map.tag_types
+            
+        self.kind = self.file_io_class.kind
 
         self.kind = None
         self.tags = None
@@ -45,34 +51,19 @@ class AudioFile( object ):
         self.embedded_cover_art = None
         self._load()
         
-    def pretty(self):
-        def pretty_value(value):
-            if hasattr(value, '__iter__'):
-                return u", ".join([pretty_value(v) for v in value])
-            elif isinstance(value, basestring):
-                return u'"%s"' % value
-            else:
-                return unicode(value)
-
-        rows = [(n, unicode(self.locations[n]), pretty_value(self.tags[n])) for n in sorted(self.tags)]
-        rows.extend(('(unkown)', unicode(self.unkown_locations[n]), pretty_value(self.unkown_tags[n])) for n in sorted(self.unkown_tags))
-        lengths = [(len(c), len(r), len(v)) for c, r, v in rows]
-        col_lengths = zip(*lengths)
-        pad = [ max(l)+1 for l in col_lengths ]
-        pretty_str = u""
-        for row in rows:
-            pretty_str += u"%-*s: %-*s: %s\n" \
-                % (pad[0], row[0], pad[1], row[1], row[2])
-        return pretty_str
+    def rows(self):
+        rows_ = [(n, self.locations[n], self.tags[n]) for n in sorted(self.tags)]
+        rows_.extend((None, self.unkown_locations[n], self.unkown_tags[n]) for n in sorted(self.unkown_tags))
+        return rows_
         
     def _load(self):
-        mtg_wrapper = self.mtg_wrapper_class(self.path)
+        file_io = self.file_io_class(self.path)
         self.tags = {}
         self.locations = {}
         self.unkown_tags = {}
         self.unkown_locations = {}
-        for loc_name in mtg_wrapper.keys():
-            is_known, tags = self._lookup(loc_name, mtg_wrapper)
+        for key in file_io.keys():
+            is_known, tags = self._lookup(key, file_io)
             if is_known:
                 self.tags.update((tag_name, mapping[1]) for tag_name, mapping in tags.items())
                 self.locations.update((tag_name, mapping[0]) for tag_name, mapping in tags.items())
@@ -80,22 +71,21 @@ class AudioFile( object ):
                 self.unkown_tags.update((tag_name, mapping[1]) for tag_name, mapping in tags.items())
                 self.unkown_locations.update((tag_name, mapping[0]) for tag_name, mapping in tags.items())
         
-    def _lookup(self, loc_name, mtg_wrapper):
+    def _lookup(self, key, file_io):
         tags = {}
         for tag_name, tag_locs in self.loc_map.items():
             for loc in tag_locs:
-                if loc.name == loc_name:
-                    text = mtg_wrapper.get_tag(loc)
+                if loc.key == unicode(key, 'latin-1'):
+                    text = file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
                     value = self._parse_tag( tag_type, text )
                     tags[tag_name] = (loc, value)
         if not tags:
             # get the ascii represantation which will escape non ascii bytes whose
             # encoding we can are not certain of
-            tag_name = 'UNKNOWN:%s' % loc_name
-            loc = tagmap.Location(loc_name, None)
-            text = mtg_wrapper.get_tag(loc)
-            tags[tag_name] = (loc, text)
+            loc = tagmap.Location(key, None)
+            text = file_io.get_tag(loc)
+            tags[key] = (loc, text)
             return False, tags
         else:
             return True, tags

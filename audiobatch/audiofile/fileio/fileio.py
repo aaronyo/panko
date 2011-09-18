@@ -1,4 +1,4 @@
-class MutagenWrapper( object ):
+class FileIO( object ):
     """
     """
     
@@ -11,10 +11,10 @@ class MutagenWrapper( object ):
     def keys(self):
         return self.mtg_file.keys()
                 
-    def set_tag(self, location_spec, value):
+    def set_tag(self, location, value):
         return NotImplementedError
 
-    def get_tag(self, location_spec):
+    def get_tag(self, location):
         return NotImplementedError
 
     def embed_cover_art(self, img):

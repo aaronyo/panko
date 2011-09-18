@@ -1,25 +1,25 @@
 from mutagen import mp3, id3
-from . import wrapper
+from . import fileio
 
 
 EXTENSIONS = ['mp3']
 
-class MP3Wrapper( wrapper.MutagenWrapper ):
-    kind = 'MP3'
+class MP3IO( fileio.FileIO ):
+    kind = 'mp3'
     
     def __init__(self, path):
-        super(MP3Wrapper, self).__init__( mp3.MP3(path) )
+        super(MP3IO, self).__init__( mp3.MP3(path) )
 
     def set_tag(self, location, value):
         if location.part != None:
-            frame_text = _get_frame(location.name)
+            frame_text = _get_frame(location.key)
             parts = list(_split_frame(frame_text)) if frame_text else None, None
             parts[idx] = value
             value = _join_frame_text(frame_class, *parts)
-        self._set_frame(value, frame_name, self.mtg_file )
+        self._set_frame(value, location.key, self.mtg_file )
 
     def get_tag(self, location):
-        frame_text = self._get_frame(location.name, self.mtg_file)
+        frame_text = self._get_frame(location.key, self.mtg_file)
         if frame_text and location.part != None:
             parts = _split_frame_text(frame_text)
             frame_text = parts[location.part]
