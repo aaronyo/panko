@@ -109,11 +109,13 @@ class TestWrite( unittest.TestCase ):
         af.save()
         self.assertEquals( TRACK_1_TAGS, audiofile.load(target).tags )
         
-#    def test_write__mp4(self):
-#        target = os.path.join(TEMP_DIR, 'test_write.m4a')
-#        shutil.copy(TRACK_3_PATH, target)
-#        audiofile.write_tags(target, TRACK_1_TAGS, clear=True)
-#        self.assertEquals( TRACK_1_TAGS, audiofile.read_track(target).tags )
+    def test_write__mp4(self):
+        target = os.path.join(TEMP_DIR, 'test_write.m4a')
+        shutil.copy(TRACK_3_PATH, target)
+        af = audiofile.load(target)
+        af.tags = TRACK_1_TAGS
+        af.save()
+        self.assertEquals( TRACK_1_TAGS, audiofile.load(target).tags )
         
     def test_image_embed_and_extract__mp3(self):
         target = os.path.join(TEMP_DIR, 'test_write_image.mp3')

@@ -12,19 +12,20 @@ class MP4IO( fileio.FileIO ):
     }
 
     def __init__(self, path):
+        self.path = path
         super(MP4IO, self).__init__( mp4.MP4(path) )
 
-    def set_tag(self, location, value):        
+    def set_tag(self, location, value):
         key = location.key.replace('(c)', '\xa9')
         if location.part != None:
-            if location.name in mp4_obj:
-                parts = list(self.mtg_file[key][0])
+            if location.key in self.mtg_file:
+                parts = self.mtg_file[key][0]
             else:
                 # FIXME: is 0 really equivalent to None here?
                 parts = [0,0]
-            parts[idx] = value
-            value = parts
-        self.mtg_file[key]= [value]
+            parts[location.part] = value
+            value = [parts]
+        self.mtg_file[key]= value
         
     def get_tag(self, location):
         key = location.key.replace('(c)', '\xa9')
@@ -46,8 +47,15 @@ class MP4IO( fileio.FileIO ):
                 return art, mime
 
     def keys(self):
-        return [ k.replace('\xa9', '(c)') for k, v in self.mtg_file.items()
-                 if not (hasattr(v, '__getitem__') and type(v[0]) is mp4.MP4Cover) ]
+        return [ k.replace('\xa9', '(c)') for k in self._raw_keys() ]
+
+    def _raw_keys(self):
+        return ( k for k, v in self.mtg_file.items()
+                 if not (hasattr(v, '__getitem__') and type(v[0]) is mp4.MP4Cover) )
         
+    def clear_tags(self):
+        # We don't want to delete the cover art
+        map(self.mtg_file.__delitem__, self._raw_keys())
+
     def has_cover_art(self):
         return 'covr' in self.mtg_file

@@ -2,11 +2,14 @@ from datetime import datetime
 import os
 import stat
 import collections
+import logging
 
 from . import tagmap
 from .fileio import mp3, flac, mp4
 from . import albumart
 from ..model import timeutil
+
+_logger = logging.getLogger()
 
 _default_handler = None
 #FIXME: aboyd: load or open?
@@ -70,7 +73,6 @@ class AudioFile( object ):
         self._discover_art(file_io)
         
     def rows(self):
-        print self.locations
         rows_ = [(n, self.locations.get(n, None), self.tags[n]) for n in sorted(self.tags)]
         rows_.extend((None, self.unkown_locations.get(n, None), self.unkown_tags[n]) for n in sorted(self.unkown_tags))
         return rows_
@@ -101,8 +103,13 @@ class AudioFile( object ):
             if type(value) is timeutil.FlexDateTime:
                 value = str(value)
             if not location:
-                location = self.loc_map[tag_name][0]
-            file_io.set_tag(location, value)
+                location = self.loc_map.get(tag_name, [None])[0]
+            if location:
+                file_io.set_tag(location, value)
+            else:
+                _logger.warn("unable to save %s for file '%s%': "
+                             "location unkown for %s" % (tag_name, self.path, self.kind))
+                
         if art:
             file_io.embed_cover_art(art.bytes, art.mime_type)
         file_io.save()
