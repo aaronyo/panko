@@ -36,6 +36,9 @@ class MP4IO( fileio.FileIO ):
             else:
                 return mtg_val
         
+    def has_cover_art(self):
+        return 'covr' in self.mtg_file
+
     def embed_cover_art(self, bytes, mime_type):
         fmt = self._image_formats[mime_type]
         self.mtg_file['covr'] = [mp4.MP4Cover(bytes, fmt)]
@@ -45,13 +48,13 @@ class MP4IO( fileio.FileIO ):
         for mime, mp4_fmt in self._image_formats.items():
             if mp4_fmt == art.imageformat:
                 return art, mime
+        return None, None
 
     def keys(self):
         return [ k.replace('\xa9', '(c)') for k in self._raw_keys() ]
 
     def _raw_keys(self):
-        return ( k for k, v in self.mtg_file.items()
-                 if not (hasattr(v, '__getitem__') and type(v[0]) is mp4.MP4Cover) )
+        return ( k for k in self.mtg_file.keys() if not k == 'covr')
         
     def clear_tags(self):
         # We don't want to delete the cover art
