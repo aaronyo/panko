@@ -1,11 +1,15 @@
 from mutagen import mp3, id3
 from . import fileio
+from ..tagmap import Location
 
 
 EXTENSIONS = ['mp3']
+_ID3_COVER_ART_CODE = 3
+
 
 class MP3IO( fileio.FileIO ):
     kind = 'mp3'
+    default_cover_key = 'APIC:cover'
     
     def __init__(self, path):
         super(MP3IO, self).__init__( mp3.MP3(path) )
@@ -25,32 +29,30 @@ class MP3IO( fileio.FileIO ):
             frame_text = parts[location.part]
         return frame_text
     
-    def embed_cover_art(self, bytes, mime_type):
-        id3_cover_art_code = 3
+    def set_cover_art(self, bytes, mime_type):
+        key = self.cover_art_key()
+        if key:
+            del mtg_file[key]
+        else:
+            key = self.default_cover_key
+        desc = key.partition(":")[2]
         apicFrame = id3.APIC( encoding = 3,
                               mime = mime_type,
-                              type = id3_cover_art_code,
-                              desc = 'cover',
+                              type = _ID3_COVER_ART_CODE,
+                              desc = desc,
                               data = bytes )
         self.mtg_file.tags.add( apicFrame )        
 
-    def extract_cover_art(self):
-        apic = None
-        for k, v in self.mtg_file.items():
-            if isinstance(v, id3.APIC):
-                if 'cover' in k.lower():
-                    # Good match -- take it
-                    return v.data, v.mime
-                else:
-                    # ok match -- whait and see
-                    apic = v
-        if apic:
-            return apic.data, apic.mime
-        else:
-            return None, None
-
-    def has_cover_art(self):
-        return any( type(v) == id3.APIC for v in self.mtg_file.values() )
+    def get_cover_art(self):
+        key = self.cover_art_key()
+        if key:
+            art = self.mtg_file[key]
+            return art.data, art.mime
+        
+    def cover_art_key(self):
+        for k, v in sorted(self.mtg_file.items()):
+            if isinstance(v, id3.APIC) and v.type == _ID3_COVER_ART_CODE:
+                return k
         
     def keys(self):
         return [k for k, v in self.mtg_file.items() if not isinstance(k, id3.APIC)]

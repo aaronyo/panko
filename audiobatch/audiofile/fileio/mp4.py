@@ -5,6 +5,7 @@ EXTENSIONS = ['m4a', 'mp4']
 
 class MP4IO( fileio.FileIO ):
     kind = 'mp4'
+    default_cover_key = 'covr'      
             
     _image_formats = {
         'image/jpeg' : mp4.MP4Cover.FORMAT_JPEG,
@@ -36,18 +37,30 @@ class MP4IO( fileio.FileIO ):
             else:
                 return mtg_val
         
-    def has_cover_art(self):
-        return 'covr' in self.mtg_file
+    def cover_art_key(self):
+        if self.default_cover_key in self.mtg_file:
+            return self.default_cover_key
 
-    def embed_cover_art(self, bytes, mime_type):
+    def set_cover_art(self, bytes, mime_type):
+        key = self.cover_art_key()
+        if key:
+            art = self.mtg_file[key]
+            del art[0]
+        else:
+            key = self.default_cover_key
+            art = []
+            
         fmt = self._image_formats[mime_type]
-        self.mtg_file['covr'] = [mp4.MP4Cover(bytes, fmt)]
+        art.insert(0, mp4.MP4Cover(bytes, fmt))
+        self.mtg_file[key] = art
 
-    def extract_cover_art(self):
-        art = self.mtg_file['covr'][0]
-        for mime, mp4_fmt in self._image_formats.items():
-            if mp4_fmt == art.imageformat:
-                return art, mime
+    def get_cover_art(self):
+        key = self.cover_art_key()
+        if key:
+            art = self.mtg_file[key][0]
+            for mime, mp4_fmt in self._image_formats.items():
+                if mp4_fmt == art.imageformat:
+                    return art, mime
         return None, None
 
     def keys(self):

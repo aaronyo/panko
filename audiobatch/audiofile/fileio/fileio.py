@@ -1,6 +1,7 @@
 class FileIO( object ):
     """
     """
+    default_cover_key = None
     
     def __init__(self, mtg_file):
         self.mtg_file = mtg_file
@@ -21,11 +22,11 @@ class FileIO( object ):
     def get_tag(self, location):
         return NotImplementedError
 
-    def embed_cover_art(self, bytes, mime_type):
+    def set_cover_art(self, bytes, mime_type):
         return NotImplementedError
 
-    def extract_cover_art(self):
+    def get_cover_art(self):
         return NotImplementedError
-
-    def has_cover_art(self):
+    
+    def cover_art_key(self):
         return NotImplementedError

@@ -28,7 +28,7 @@ class TestRead( unittest.TestCase ):
                            
     def test_read_folder_image_path(self):
         af = audiofile.load(td.TRACK_1_PATH, cover_art='cover.jpg')
-        self.assertTrue(af.has_folder_cover_art)
+        self.assertTrue(af.has_folder_cover)
         self.assertEquals( td.ALBUM_1_COVER_PATH,
                            af.folder_cover_path )
 

@@ -44,10 +44,12 @@ class AudioFile( object ):
     def __init__(self, path, tag_map, cover_art=None):
         self.path = path
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
+        self.folder_cover_path = None
         if cover_art:
-            self.folder_cover_path = os.path.join(os.path.dirname(path), cover_art)
-            if not os.path.exists(self.folder_cover_path):
-                self.folder_cover_path=None
+            check_path = os.path.join(os.path.dirname(path), cover_art)
+            if os.path.exists( check_path ):
+                self.folder_cover_path = check_path
+                
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
         if self.ext in mp3.EXTENSIONS:
@@ -65,9 +67,8 @@ class AudioFile( object ):
         self.kind = None
         self.tags = None
         self.locations = None
-        self.folder_cover_art = None
-        self.has_embedded_cover_art = None
-        self._embedded_cover_art = None
+        self.embedded_cover_key = None
+        self._embedded_cover = None
         file_io = self.file_io_class(self.path)
         self._load_tags(file_io)
         self._discover_art(file_io)
@@ -78,25 +79,30 @@ class AudioFile( object ):
         return rows_
     
     @property
-    def has_folder_cover_art(self):
+    def has_folder_cover(self):
         return self.folder_cover_path != None
     
-    def embed_cover_art(self, art):
-        self._embedded_cover_art = art
-        self.has_embedded_cover_art = True
+    @property
+    def has_embedded_cover(self):
+        return self.embedded_cover_key != None
+
+    def embed_cover(self, art):
+        self._embedded_cover = art
+        if not self.embedded_cover_key:
+            self.embedded_cover_key = self.file_io_class.default_cover_key
         
-    def extract_cover_art(self):
-        if self._embedded_cover_art:
-            return self._embedded_cover_art
-        else:
-            file_io = self.file_io_class(self.path)
-            bytes, mime_type = file_io.extract_cover_art()
-            if bytes:
+    def extract_cover(self):
+        if self.has_embedded_cover:
+            if self._embedded_cover:
+                return self._embedded_cover_art
+            else:
+                file_io = self.file_io_class(self.path)
+                bytes, mime_type = file_io.get_cover_art()
                 return albumart.AlbumArt(bytes, mime_type)
         
     def save(self):        
-        art = self._embedded_cover_art
-        assert(self.has_embedded_cover_art or not art)
+        art = self._embedded_cover
+        assert(self.embedded_cover_key or not art)
         file_io = self.file_io_class(self.path)
         file_io.clear_tags()
         for tag_name, location, value in self.rows():
@@ -111,11 +117,11 @@ class AudioFile( object ):
                              "location unkown for %s" % (tag_name, self.path, self.kind))
                 
         if art:
-            file_io.embed_cover_art(art.bytes, art.mime_type)
+            file_io.set_cover_art(art.bytes, art.mime_type)
         file_io.save()
         
     def _discover_art(self, file_io):
-        self.has_embedded_cover_art = file_io.has_cover_art()
+        self.embedded_cover_key = file_io.cover_art_key()
         
     def _load_tags(self, file_io):
         self.tags = {}
