@@ -43,8 +43,11 @@ class TagType(namedtuple("TagType", "type_, is_multival")):
         else:
             return self.type_.__name__
 
-class Location(namedtuple("Location", "key, part")):
+class Location(object):
     _matcher = re.compile("(?P<key>\w*)\[(?P<part>[0-9]+)\]")
+    
+    def __init__(self, key, part=None):
+        self.key, self.part = key, part
     
     @staticmethod
     def parse(rep):
