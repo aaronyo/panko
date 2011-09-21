@@ -16,17 +16,24 @@
 #   to the freeform string version of the genre.  It also generally only writes the freeform
 #   version.  This seems to be the trend -- ditching the numeric genre -- so I don't see
 #   a good reason to support reading or setting it.
+#
+# not yet handled:
+#   many id's, like musicbrainz id's and cddb id's... e.g., mp4 UFID tag... not sure when that
+#   tag is used, vs. comment tags for id's, etc.
+#
+#
+
 
 
 DEFAULT_MAP=\
 """
-album_titles:
+album_title:
     type: unicode[]
     mp4: (c)alb
     mp3: TALB   
     flac: [album, albumtitle]
 
-album_artists:
+album_artist:
     type: unicode[]
     mp4: aART
     mp3: TPE2
@@ -38,19 +45,19 @@ album_release_date:
     mp3: TDRC
     flac: date
 
-artists:
+artist:
     type: unicode[]
     mp4: (c)ART
     mp3: TPE1
     flac: artist
 
-composers:
+composer:
     type: unicode[]
     mp4: (c)wrt
     mp3: TCOM
     flac: composer
 
-titles:
+title:
     type: unicode[]
     mp4: (c)nam
     mp3: TIT2
@@ -80,13 +87,13 @@ disc_total:
     mp3: TPOS[1]
     flac: [disctotal, totaldiscs]
 
-genres:
+genre:
     type: unicode[]
     mp4: (c)gen
     mp3: TCON
     flac: genre
 
-groupings:
+grouping:
     type: unicode[]
     mp4: (c)grp
     mp3: TIT1

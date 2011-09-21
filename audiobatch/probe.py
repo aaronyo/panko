@@ -1,6 +1,9 @@
 import sys
 import argparse
 from audiobatch import audiofile
+import csv
+import sys
+import StringIO
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Display an audio files meta data.')
@@ -16,12 +19,10 @@ def main():
 
 def format_rows(rows):
     def format_value(value):
-        if hasattr(value, '__iter__'):
-            return u", ".join([format_value(v) for v in value])    
-        elif isinstance(value, basestring):
-            return u'"%s"' % value
-        else:
-            return unicode(value)
+        strio = StringIO.StringIO()
+        writer = csv.writer(strio)
+        writer.writerow(value)
+        return strio.getvalue()[:-1]
     
     frmt_rows = [ (n or '(unknown)', str(l), format_value(v))
                   for n, l, v in rows ]

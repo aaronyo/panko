@@ -16,18 +16,25 @@ class MP3IO( fileio.FileIO ):
 
     def set_tag(self, location, value):
         if location.part != None:
-            frame_text = self._get_frame(location.key)
-            parts = list(_split_frame_text(frame_text)) if frame_text else [None, None]
-            parts[location.part] = value
-            value = _join_frame_text(*parts)
-        self._set_frame(location.key, value)
+            vals = []
+            frame_data = self._get_frame_data(location.key)
+            for i, v in enumerate(value):
+                item = frame_data[0] if frame_data and i < len(frame_data) else None
+                parts = list(_split_frame_text(item)) if item else [None, None]
+                parts[location.part] = v
+                vals.append(_join_frame_text(*parts))
+                self._set_frame_data(location.key, vals)
+        else:
+            self._set_frame_data(location.key, value)
+        
 
     def get_tag(self, location):
-        frame_text = self._get_frame(location.key)
-        if frame_text and location.part != None:
-            parts = _split_frame_text(frame_text)
-            frame_text = parts[location.part]
-        return frame_text
+        frame_data = self._get_frame_data(location.key)
+        if frame_data and location.part != None:
+            return( [ _split_frame_text(item)[location.part]
+                     for item in frame_data ] )
+        else:
+            return frame_data
     
     def set_cover_art(self, bytes, mime_type):
         key = self.cover_art_key()
@@ -57,16 +64,22 @@ class MP3IO( fileio.FileIO ):
     def keys(self):
         return [k for k, v in self.mtg_file.items() if not isinstance(k, id3.APIC)]
 
-    def _set_frame(self, frame_name, value):
-        print frame_name
+    def _set_frame_data(self, frame_name, value):
         frame_class = _get_frame_class(frame_name)
         frame = frame_class( encoding=3, text=value )
         self.mtg_file.tags.add( frame )
 
-    def _get_frame(self, frame_name):
+    def _get_frame_data(self, frame_name):
         if frame_name not in self.mtg_file:
              return None
-        return unicode(self.mtg_file[frame_name])            
+        frame = self.mtg_file[frame_name]
+        if hasattr(frame, 'text'):
+            return frame.text
+        elif hasattr(frame, 'data'):
+            return [frame.data]
+        else:
+            raise ValueError('ID3 frame data not found')
+        
 
 def _split_frame_text(text):
     vals = text.split("/")

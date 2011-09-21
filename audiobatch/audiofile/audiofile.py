@@ -106,16 +106,18 @@ class AudioFile( object ):
         file_io = self.file_io_class(self.path)
         file_io.clear_tags()
         for tag_name, location, value in self.rows():
-            if type(value) is timeutil.FlexDateTime:
-                value = str(value)
+            if tag_name:
+                if self.type_map[tag_name].is_multival:
+                    value = [value[0]]
+                if type(value[0]) == timeutil.FlexDateTime:
+                    value = [str(v) for v in value]
             if not location:
                 location = self.loc_map.get(tag_name, [None])[0]
             if location:
                 file_io.set_tag(location, value)
             else:
                 _logger.warn("unable to save %s for file '%s%': "
-                             "location unkown for %s" % (tag_name, self.path, self.kind))
-                
+                             "location unkown for %s" % (tag_name, self.path, self.kind))    
         if art:
             file_io.set_cover_art(art.bytes, art.mime_type)
         file_io.save()
@@ -144,7 +146,7 @@ class AudioFile( object ):
                 if loc.key == key:
                     text = file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
-                    value = self._parse_tag( tag_type, text )
+                    value = text # self._parse_tag( tag_type, text )
                     tags[tag_name] = (loc, value)
         if not tags:
             # get the ascii represantation which will escape non ascii bytes whose
@@ -159,15 +161,9 @@ class AudioFile( object ):
     @staticmethod
     def _parse_tag(tag_type, text):
         if hasattr(text, '__iter__'):
-            if tag_type.is_multival:
-                return [AudioFile._parse_tag_item(tag_type.type_, i) for i in text]
-            else:
-                return AudioFile._parse_tag_item(tag_type.type_, text[0])
+            return [AudioFile._parse_tag_item(tag_type.type_, i) for i in text]
         else:
-            if tag_type.is_multival:
-                return [AudioFile._parse_tag_item(tag_type.type_, text)]
-            else:
-                return AudioFile._parse_tag_item(tag_type.type_, text)           
+            return [AudioFile._parse_tag_item(tag_type.type_, text)]
 
     @staticmethod
     def _parse_tag_item(type_, value):
@@ -178,5 +174,10 @@ class AudioFile( object ):
         if not value:
             return value
         else:
-            return parse_func(unicode(value))
-
+            # Get rid of Mutagen types before parsing, but
+            # don't convert binary strings to unicode
+            if isinstance(value, basestring):
+                return parse_func(value)
+            else:
+                return parse_func(unicode(value))
+                

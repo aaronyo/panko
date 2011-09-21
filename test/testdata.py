@@ -14,40 +14,40 @@ TRACK_3_PATH = os.path.join( AUDIO_DIR,
                              'Compilations/Jazz Dance Classics Volume 1/01 Celestial Blues.m4a' )
 
 TRACK_1_TAGS = { 
-    'artists': ['Alex Lloyd'],
-    'titles': ['Melting'],
-    'disc_number': 1,
-    'track_number': 1,
-    'disc_total': 1, 
-    'track_total': 13,
-    'isrc': 'AUEM09900036',
-    'album_artists': ['Alex Lloyd'],
-    'album_titles': ['Black the Sun'],
-    'album_release_date': FlexDateTime(1999, 8, 2)
+    'artist': ['Alex Lloyd'],
+    'title': ['Melting'],
+    'disc_number': [1],
+    'track_number': [1],
+    'disc_total': [1], 
+    'track_total': [13],
+    'isrc': ['AUEM09900036'],
+    'album_artist': ['Alex Lloyd'],
+    'album_title': ['Black the Sun'],
+    'album_release_date': [FlexDateTime(1999, 8, 2)]
 }
 
 TRACK_2_TAGS = {
-    'composers': ['Oscar Hammerstein II/Richard Rodgers/Richard Rodgers /'],
-    'genres': ['Rock'],
-    'titles': ['Tunnel Of Love'],
-    'disc_total': 1,
-    'track_total': 7,
-    'track_number': 1,
-    'disc_number': 1,
-    'encoding_tool': 'iTunes 8.0.2',
-    'artists': ['Dire Straits'],
-    'album_release_date': FlexDateTime(1980),
-    'album_titles': ['Making Movies']
+    'composer': ['Oscar Hammerstein II/Richard Rodgers/Richard Rodgers /'],
+    'genre': ['Rock'],
+    'title': ['Tunnel Of Love'],
+    'disc_total': [1],
+    'track_total': [7],
+    'track_number': [1],
+    'disc_number': [1],
+    'encoding_tool': ['iTunes 8.0.2'],
+    'artist': ['Dire Straits'],
+    'album_release_date': [FlexDateTime(1980)],
+    'album_title': ['Making Movies']
 }
 
 TRACK_3_TAGS = {
-    'genres': ['Jazz'],
-    'titles': ['Celestial Blues'],
-    'track_total': 8,
-    'track_number': 1,
-    'artists': ['Gary Bartz'],
-    'encoding_tool': 'iTunes 8.2',
-    'is_compilation': True,
-    'album_artists': ['Various'],
-    'album_titles': ['Jazz Dance Classics Volume 1']
+    'genre': ['Jazz'],
+    'title': ['Celestial Blues'],
+    'track_total': [8],
+    'track_number': [1],
+    'artist': ['Gary Bartz'],
+    'encoding_tool': ['iTunes 8.2'],
+    'is_compilation': [True],
+    'album_artist': ['Various'],
+    'album_title': ['Jazz Dance Classics Volume 1']
 }

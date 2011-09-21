@@ -19,23 +19,24 @@ class MP4IO( fileio.FileIO ):
     def set_tag(self, location, value):
         key = location.key.replace('(c)', '\xa9')
         if location.part != None:
-            if location.key in self.mtg_file:
-                parts = self.mtg_file[key][0]
-            else:
-                # FIXME: is 0 really equivalent to None here?
-                parts = [0,0]
-            parts[location.part] = value
-            value = [parts]
-        self.mtg_file[key]= value
+            data = self.mtg_file.get(key, None)
+            new_data = []
+            for i, v in enumerate(value):
+                parts = data[i] if data and i < len(data) else [0,0]
+                parts[location.part] = v
+                new_data.append(parts)
+            self.mtg_file[key] = new_data
+        else:
+            self.mtg_file[key] = value
+            
         
     def get_tag(self, location):
         key = location.key.replace('(c)', '\xa9')
-        if key in self.mtg_file:
-            mtg_val = self.mtg_file[key]
-            if location.part != None:
-                return mtg_val[0][location.part]
-            else:
-                return mtg_val
+        data = self.mtg_file.get(key, None)
+        if data and location.part != None:
+            return([ item[location.part] for item in data ])
+        else:
+            return data
         
     def cover_art_key(self):
         if self.default_cover_key in self.mtg_file:
