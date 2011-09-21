@@ -17,7 +17,7 @@ class MP4IO( fileio.FileIO ):
         super(MP4IO, self).__init__( mp4.MP4(path) )
 
     def set_tag(self, location, value):
-        key = location.key.replace('(c)', '\xa9')
+        key = location.key.decode('string_escape')
         if location.part != None:
             data = self.mtg_file.get(key, None)
             new_data = []
@@ -31,12 +31,15 @@ class MP4IO( fileio.FileIO ):
             
         
     def get_tag(self, location):
-        key = location.key.replace('(c)', '\xa9')
+        key = location.key.decode('string_escape')
         data = self.mtg_file.get(key, None)
         if data and location.part != None:
             return([ item[location.part] for item in data ])
         else:
-            return data
+            if not hasattr(data, '__iter__'):
+                return [data]
+            else:
+                return data
         
     def cover_art_key(self):
         if self.default_cover_key in self.mtg_file:
@@ -65,7 +68,8 @@ class MP4IO( fileio.FileIO ):
         return None, None
 
     def keys(self):
-        return [ k.replace('\xa9', '(c)') for k in self._raw_keys() ]
+        return [ k.encode('string_escape') for k in self._raw_keys() ]
+#        return self._raw_keys()
 
     def _raw_keys(self):
         return ( k for k in self.mtg_file.keys() if not k == 'covr')

@@ -14,6 +14,7 @@ class TagMap(object):
         self.locations = {'mp3':{}, 'mp4':{}, 'flac':{}}
         yaml_obj = yaml.load(data)
         for tag_name, specs in yaml_obj.items():
+            tag_name = tag_name
             self.tag_types[tag_name] = TagType.parse( specs.pop('type') )
             for format, locs in specs.items():
                 tag_locs = []

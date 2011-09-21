@@ -26,10 +26,10 @@
 
 
 DEFAULT_MAP=\
-"""
+r"""
 album_title:
     type: unicode[]
-    mp4: (c)alb
+    mp4: \xa9alb
     mp3: TALB   
     flac: [album, albumtitle]
 
@@ -41,25 +41,25 @@ album_artist:
 
 album_release_date:
     type: FlexDateTime
-    mp4: (c)day
+    mp4: \xa9day
     mp3: TDRC
     flac: date
 
 artist:
     type: unicode[]
-    mp4: (c)ART
+    mp4: \xa9ART
     mp3: TPE1
     flac: artist
 
 composer:
     type: unicode[]
-    mp4: (c)wrt
+    mp4: \xa9wrt
     mp3: TCOM
     flac: composer
 
 title:
     type: unicode[]
-    mp4: (c)nam
+    mp4: \xa9nam
     mp3: TIT2
     flac: title
 
@@ -89,18 +89,18 @@ disc_total:
 
 genre:
     type: unicode[]
-    mp4: (c)gen
+    mp4: \xa9gen
     mp3: TCON
     flac: genre
 
 grouping:
     type: unicode[]
-    mp4: (c)grp
+    mp4: \xa9grp
     mp3: TIT1
 
 comment:
     type: unicode
-    mp4: (c)cmt
+    mp4: \xa9cmt
     mp3: COMM::'eng'
     
 bpm:
@@ -110,7 +110,7 @@ bpm:
 
 lyrics:
     type: unicode
-    mp4: (c)lyr
+    mp4: \xa9lyr
     mp3: USLT::'eng'
 
 copyright:
@@ -119,12 +119,12 @@ copyright:
 
 encoding_tool:
     type: unicode
-    mp4: (c)too
+    mp4: \xa9too
     mp3: TENC
     
 encoded_by:
     type: unicode
-    mp4: (c)9enc
+    mp4: \xa9enc
 
 purchase_date:
     type: FlexDateTime

@@ -62,7 +62,7 @@ class MP3IO( fileio.FileIO ):
                 return k
         
     def keys(self):
-        return [k for k, v in self.mtg_file.items() if not isinstance(k, id3.APIC)]
+        return [k for k, v in self.mtg_file.items() if not isinstance(v, id3.APIC)]
 
     def _set_frame_data(self, frame_name, value):
         frame_class = _get_frame_class(frame_name)
@@ -78,7 +78,7 @@ class MP3IO( fileio.FileIO ):
         elif hasattr(frame, 'data'):
             return [frame.data]
         else:
-            raise ValueError('ID3 frame data not found')
+            return [str(frame).encode('string_escape')]
         
 
 def _split_frame_text(text):
