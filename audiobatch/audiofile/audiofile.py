@@ -7,7 +7,7 @@ import logging
 from . import tagmap
 from .fileio import mp3, flac, mp4
 from . import albumart
-from ..model import timeutil
+from .flexdatetime import FlexDateTime
 
 _logger = logging.getLogger()
 
@@ -111,9 +111,9 @@ class AudioFile( object ):
         file_io.clear_tags()
         for tag_name, location, value in self.rows():
             if tag_name:
-                if self.type_map[tag_name].is_multival:
+                if not self.type_map[tag_name].is_multival:
                     value = [value[0]]
-                if type(value[0]) == timeutil.FlexDateTime:
+                if type(value[0]) == FlexDateTime:
                     value = [str(v) for v in value]
             if not location:
                 location = self.loc_map.get(tag_name, [None])[0]
@@ -186,4 +186,7 @@ class AudioFile( object ):
                 else:
                     return parse_func(unicode(value))
             except:
+                #FIXME: this needs to be more informative if
+                #       any exception is swallowed... and probably
+                #       still should not swallow all exceptions as Invalid
                 return Invalid()

@@ -135,7 +135,7 @@ encoder:
     flac: encoder
 
 encoder_params:
-    type: str
+    type: Bytes
     mp3: TSSE
     mp4: ----:com.apple.iTunes:Encoding Params
     flac: encoder settings

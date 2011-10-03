@@ -30,6 +30,9 @@ class FlexDateTime( object ):
     def date(self):
         return FlexDateTime(self.year, self.month, self.day)
 
+    def __unicode__(self):
+        return unicode(self.__str__())
+        
     def __str__(self):
         vals = [ self.year, self.month, self.day,
                  self.hour, self.min, self.sec ]

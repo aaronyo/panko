@@ -1,5 +1,6 @@
 import os.path
-from audiobatch.model.timeutil import FlexDateTime
+from audiobatch.audiofile.flexdatetime import FlexDateTime
+from audiobatch.audiofile.bytes import Bytes
 
 AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
 AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
@@ -47,7 +48,7 @@ TRACK_3_TAGS = {
     'track_number': [1],
     'artist': ['Gary Bartz'],
     'encoder_app': ['iTunes 8.2'],
-    'encoder_params': ['vers\x00\x00\x00\x01acbf\x00\x00\x00\x03vbrq\x00\x00\x00`'],
+    'encoder_params': [Bytes('vers\x00\x00\x00\x01acbf\x00\x00\x00\x03vbrq\x00\x00\x00`')],
     'is_compilation': [True],
     'album_artist': ['Various'],
     'album_title': ['Jazz Dance Classics Volume 1']

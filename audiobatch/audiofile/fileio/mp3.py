@@ -1,7 +1,7 @@
 from mutagen import mp3, id3
 from . import fileio
 from ..tagmap import Location
-
+from ... import util
 
 EXTENSIONS = ['mp3']
 _ID3_COVER_ART_CODE = 3
@@ -13,8 +13,12 @@ class MP3IO( fileio.FileIO ):
     
     def __init__(self, path):
         super(MP3IO, self).__init__( mp3.MP3(path) )
+        self.join_multivalue = True
+        self.join_char = '/'
 
     def set_tag(self, location, value):
+        if self.join_multivalue:
+            value = util.join_items(value, self.join_char)
         if location.part != None:
             vals = []
             frame_data = self._get_frame_data(location.key)

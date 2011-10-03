@@ -1,5 +1,6 @@
 from mutagen import mp4
 from . import fileio
+from ... import util
 
 EXTENSIONS = ['m4a', 'mp4']
 
@@ -15,9 +16,13 @@ class MP4IO( fileio.FileIO ):
     def __init__(self, path):
         self.path = path
         super(MP4IO, self).__init__( mp4.MP4(path) )
+        self.join_multivalue = True
+        self.join_char = '/'
 
     def set_tag(self, location, value):
         key = location.key.decode('string_escape')
+        if self.join_multivalue:
+            value = util.join_items(value, self.join_char)
         if location.part != None:
             data = self.mtg_file.get(key, None)
             new_data = []

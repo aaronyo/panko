@@ -85,5 +85,19 @@ class TestWrite( unittest.TestCase ):
             mtg_file.save()
             af = audiofile.load(target)
             self.assertEquals([9,10], af.tags['track_number'])
-            
+    
+    def test_join_multival_on_write(self):
+        cases = [(td.TRACK_2_PATH, 'test_multival.mp3'),
+                 (td.TRACK_3_PATH, 'test_multival.mp4')]
+        for case in cases:
+            print case
+            source, target = case
+            target = os.path.join(td.TEMP_DIR, target)
+            shutil.copy(source, target)
+            af = audiofile.load(target)
+            af.tags['artist'] = ['a','b']
+            af.save()
+            af = audiofile.load(target)
+            self.assertEquals(['a/b'], af.tags['artist'])
+        
             

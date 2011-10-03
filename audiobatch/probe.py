@@ -22,12 +22,8 @@ def main():
 def decode_all(values):
     decoded = []
     for v in values:
-        if isinstance(v, str):
-            decoded.append( unicode(v.encode('string-escape')) )
-        elif isinstance(v, unicode):
-            decoded.append(v)
-        else:
-            decoded.append(unicode(str(v), 'utf-8'))
+        # Any data must support decoding to unicode
+        decoded.append( unicode(v) )
     return decoded
             
         

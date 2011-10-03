@@ -1,6 +1,7 @@
 from collections import namedtuple
 import re
-from ..model.timeutil import FlexDateTime
+from .flexdatetime import FlexDateTime
+from .bytes import Bytes
 from . import tagmap_config
 import yaml
 
@@ -36,6 +37,8 @@ class TagType(namedtuple("TagType", "type_, is_multival")):
         if not type_:
             if rep == 'FlexDateTime':
                 type_ = FlexDateTime
+            if rep == 'Bytes':
+                type_ = Bytes
         return TagType(type_, is_multival )
 
     def __str__(self):
