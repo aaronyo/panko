@@ -122,22 +122,6 @@ copyright:
     mp4: cprt
     flac: copyright
 
-encoder_app:
-    type: unicode
-    mp4: \xa9too
-    mp3: TENC
-    flac: encoded by
-    
-encoder:
-    type: unicode
-    mp3: TXXX:Encoder
-    mp4: ----:com.apple.iTunes:Encoder
-    flac: encoder
-
-encoded_by:
-    type: unicode
-    mp4: \xa9enc
-
 purchase_date:
     type: FlexDateTime
     mp4: purd
