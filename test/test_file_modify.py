@@ -8,6 +8,9 @@ from audiobatch import audiofile
 from . import testdata as td
 
 class TestWrite( unittest.TestCase ):
+    def setUp(self):
+        self.maxDiff = None
+        
     def tearDown(self):
         for f in os.listdir(td.TEMP_DIR):
             f_path = os.path.join(td.TEMP_DIR, f)

@@ -75,10 +75,8 @@ class MP3IO( fileio.FileIO ):
         frame = self.mtg_file[frame_name]
         if hasattr(frame, 'text'):
             return frame.text
-        elif hasattr(frame, 'data'):
-            return [frame.data]
         else:
-            return [str(frame).encode('string_escape')]
+            return frame #[str(frame).encode('string_escape')]
         
 
 def _split_frame_text(text):

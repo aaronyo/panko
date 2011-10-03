@@ -8,6 +8,9 @@ from audiobatch import audiofile
 from . import testdata as td
 
 class TestRead( unittest.TestCase ):
+    def setUp(self):
+        self.maxDiff = None
+
     def test_read_tags__flac(self):
         af = audiofile.load(td.TRACK_1_PATH)
         self.assertEquals(td.TRACK_1_TAGS, af.tags)

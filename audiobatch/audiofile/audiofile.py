@@ -39,6 +39,10 @@ class AudioFileHandler(object):
 
 MappedTag = collections.namedtuple("MappedTag", "location, value")
 
+class Invalid(object):
+    def __str__(self):
+        return '<Invalid: Could not parse>'
+
 class AudioFile( object ):
     
     def __init__(self, path, tag_map, cover_art=None):
@@ -144,16 +148,16 @@ class AudioFile( object ):
         for tag_name, tag_locs in self.loc_map.items():
             for loc in tag_locs:
                 if loc.key == key:
-                    text = file_io.get_tag(loc)
+                    data = file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
-                    value = text # self._parse_tag( tag_type, text )
+                    value = self._parse_tag( tag_type, data )
                     tags[tag_name] = (loc, value)
         if not tags:
             # get the ascii represantation which will escape non ascii bytes whose
-            # encoding we can are not certain of
+            # encoding we are not certain of
             loc = tagmap.Location(key, None)
-            text = file_io.get_tag(loc)
-            tags[key] = (loc, text)
+            data = file_io.get_tag(loc)
+            tags[key] = (loc, data)
             return False, tags
         else:
             return True, tags
@@ -176,8 +180,10 @@ class AudioFile( object ):
         else:
             # Get rid of Mutagen types before parsing, but
             # don't convert binary strings to unicode
-            if isinstance(value, basestring):
-                return parse_func(value)
-            else:
-                return parse_func(unicode(value))
-                
+            try:
+                if isinstance(value, basestring):
+                    return parse_func(value)
+                else:
+                    return parse_func(unicode(value))
+            except:
+                return Invalid()

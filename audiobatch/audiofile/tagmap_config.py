@@ -5,7 +5,7 @@
 #   Some audiobatch tags, like track_number and track_total, may map to 
 #   information stored in a single file tag, or a compound tag.  [] notation
 #   is used to indicate which part of the file's tag is desired.  The actual
-#   parsing and construction of the compound tag is hard wired in the code.
+#   parsing and conunicodeuction of the compound tag is hard wired in the code.
 #   MP4 and MP3 are expected to separate elements with a "/".
 #
 #   A '*' anywhere in the table indicates that a corresponding footnote exists at
@@ -13,7 +13,7 @@
 #
 # genres
 #   Mutagen seems to do a good job of converting any numeric id3v1 style genre fields
-#   to the freeform string version of the genre.  It also generally only writes the freeform
+#   to the freeform unicodeing version of the genre.  It also generally only writes the freeform
 #   version.  This seems to be the trend -- ditching the numeric genre -- so I don't see
 #   a good reason to support reading or setting it.
 #
@@ -97,31 +97,49 @@ grouping:
     type: unicode[]
     mp4: \xa9grp
     mp3: TIT1
+    flac: style
 
 comment:
     type: unicode
     mp4: \xa9cmt
     mp3: COMM::'eng'
+    flac: description
     
 bpm:
     type: int
     mp4: tmpo
     mp3: TBPM
+    flac: bpm
 
 lyrics:
     type: unicode
     mp4: \xa9lyr
     mp3: USLT::'eng'
+    flac: lyrics
 
 copyright:
     type: unicode
     mp4: cprt
+    flac: copyright
 
-encoding_tool:
+encoder_app:
     type: unicode
     mp4: \xa9too
     mp3: TENC
+    flac: encoded by
     
+encoder:
+    type: unicode
+    mp3: TXXX:Encoder
+    mp4: ----:com.apple.iTunes:Encoder
+    flac: encoder
+
+encoder_params:
+    type: str
+    mp3: TSSE
+    mp4: ----:com.apple.iTunes:Encoding Params
+    flac: encoder settings
+
 encoded_by:
     type: unicode
     mp4: \xa9enc
@@ -130,14 +148,11 @@ purchase_date:
     type: FlexDateTime
     mp4: purd
 
-content_rating:
-    type: int
-    mp4: rtng
-
 is_compilation:
     type: bool
     mp4: cpil
     mp3: TCMP
+    flac: compilation
 
 sort_title:
     type: unicode
@@ -181,19 +196,56 @@ itunes_purchase_country_code:
     mp4: sfID
 
 isrc:
-    type: str
+    type: unicode
     mp4: "----:com.apple.iTunes:ISRC"
     mp3: TSRC
     flac: isrc
 
 itunes_cddb_id:
-    type: str
+    type: unicode
     mp4: "----:com.apple.iTunes:iTunes_CDDB_1"
     mp3: "COMM:iTunes_CDDB_1:'eng'"
+    flac: itunescddbid
 
 itunes_cddb_track_number:
     type: int
     mp4: "----:com.apple.iTunes:iTunes_CDDB_TrackNumber"
     mp3: "COMM:iTunes_CDDB_TrackNumber:'eng'"
+    flac: itunescddbtracknumber
+
+accurate_rip_disc_id:
+    type: unicode
+    mp3: TXXX:AccurateRipDiscID
+    mp4: ----:com.apple.iTunes:AccurateRipDiscID
+    flac: accurateripdiscid
+
+accurate_rip_result:
+    type: unicode
+    mp3: TXXX:AccurateRipResult
+    mp4: ----:com.apple.iTunes:AccurateRipResult
+    flac: accurateripresult
+
+recording_label:
+    type: unicode
+    mp3: TPUB
+    mp4: ----:com.apple.iTunes:Label
+    flac: organization
+    
+source_media:
+    type: unicode
+    mp3: TMED
+    mp4: ----:com.apple.iTunes:Source
+    flac: source
+    
+upc:
+    type: unicode
+    mp3: TXXX:UPC
+    mp4: ----:com.apple.iTunes:UPC
+    flac: upc
 """
+
+# organization      | LaFace
+# source            | CD (Lossless)
+# style             | Urban,Contemporary Pop/Rock,Soundtracks,Film Music
+# upc               | 730082600620
 

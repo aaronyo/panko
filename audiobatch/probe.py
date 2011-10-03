@@ -1,9 +1,11 @@
 import sys
 import argparse
-from audiobatch import audiofile
 import csv
 import sys
 import StringIO
+
+from audiobatch import audiofile
+from audiobatch import util
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Display an audio files meta data.')
@@ -17,11 +19,26 @@ def main():
         af = audiofile.load(file_path)
         print format_rows( af.rows() )
 
+def decode_all(values):
+    decoded = []
+    for v in values:
+        if isinstance(v, str):
+            decoded.append( unicode(v.encode('string-escape')) )
+        elif isinstance(v, unicode):
+            decoded.append(v)
+        else:
+            decoded.append(unicode(str(v), 'utf-8'))
+    return decoded
+            
+        
+
 def format_rows(rows):
     def format_value(value):
+        value = util.seqify(value)
+        unicoded = decode_all(value)
         strio = StringIO.StringIO()
         writer = csv.writer(strio)
-        writer.writerow(value)
+        writer.writerow(unicoded)
         return strio.getvalue()[:-1]
     
     frmt_rows = [ (n or '(unknown)', str(l), format_value(v))
