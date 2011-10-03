@@ -13,16 +13,16 @@ class TestRead( unittest.TestCase ):
 
     def test_read_tags__flac(self):
         af = audiofile.load(td.TRACK_1_PATH)
-        self.assertEquals(td.TRACK_1_TAGS, af.tags)
+        self.assertEquals(td.TRACK_1_TAGS, af.read_tags())
 
     def test_read_tags__mp3(self):
         self.maxDiff=None
         af = audiofile.load(td.TRACK_2_PATH)
-        self.assertEquals(td.TRACK_2_TAGS, af.tags)
+        self.assertEquals(td.TRACK_2_TAGS, af.read_tags())
         
     def test_read_tags__mp4(self):
         af = audiofile.load(td.TRACK_3_PATH)
-        self.assertEquals(td.TRACK_3_TAGS, af.tags)
+        self.assertEquals(td.TRACK_3_TAGS, af.read_tags())
 
     def test_read_mod_time(self):
         af = audiofile.load(td.TRACK_1_PATH)

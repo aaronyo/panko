@@ -8,6 +8,7 @@ from . import tagmap
 from .fileio import mp3, flac, mp4
 from . import albumart
 from .flexdatetime import FlexDateTime
+from .. import util
 
 _logger = logging.getLogger()
 
@@ -37,8 +38,6 @@ class AudioFileHandler(object):
     def load(self, path, cover_art=None):
         return AudioFile(path, self.tag_map, cover_art)
 
-MappedTag = collections.namedtuple("MappedTag", "location, value")
-
 class Invalid(object):
     def __str__(self):
         return '<Invalid: Could not parse>'
@@ -57,30 +56,18 @@ class AudioFile( object ):
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
         if self.ext in mp3.EXTENSIONS:
-            self.file_io_class = mp3.MP3IO
+            file_io_class = mp3.MP3IO
         elif self.ext in flac.EXTENSIONS:
-            self.file_io_class = flac.FLACIO
+            file_io_class = flac.FLACIO
         elif self.ext in mp4.EXTENSIONS:
-            self.file_io_class = mp4.MP4IO
+            file_io_class = mp4.MP4IO
             
-        self.loc_map = tag_map.locations[self.file_io_class.kind]
+        self.loc_map = tag_map.locations[file_io_class.kind]
         self.type_map = tag_map.tag_types
             
-        self.kind = self.file_io_class.kind
-
-        self.kind = None
-        self.tags = None
-        self.locations = None
-        self.embedded_cover_key = None
-        self._embedded_cover = None
-        file_io = self.file_io_class(self.path)
-        self._load_tags(file_io)
-        self._discover_art(file_io)
-        
-    def rows(self):
-        rows_ = [(n, self.locations.get(n, None), self.tags[n]) for n in sorted(self.tags)]
-        rows_.extend((None, self.unkown_locations.get(n, None), self.unkown_tags[n]) for n in sorted(self.unkown_tags))
-        return rows_
+        self.kind = file_io_class.kind
+        self.file_io = file_io_class(self.path)
+        self._dirty = False
     
     @property
     def has_folder_cover(self):
@@ -88,79 +75,73 @@ class AudioFile( object ):
     
     @property
     def has_embedded_cover(self):
-        return self.embedded_cover_key != None
+        return self.file_io.cover_art_key() != None
 
     def embed_cover(self, art):
-        self._embedded_cover = art
-        if not self.embedded_cover_key:
-            self.embedded_cover_key = self.file_io_class.default_cover_key
+        self._dirty = True
+        self.file_io.set_cover_art(art.bytes, art.mime_type)
         
     def extract_cover(self):
-        if self.has_embedded_cover:
-            if self._embedded_cover:
-                return self._embedded_cover_art
+        bytes, mime_type = self.file_io.get_cover_art()
+        return albumart.AlbumArt(bytes, mime_type)
+    
+    def __del__(self):
+        self.flush()
+    
+    def close(self):
+        self.flush()
+        del self.file_io
+            
+    def flush(self):
+        if self._dirty:
+            self.file_io.save()
+            self._dirty = False
+        
+    def read_tags(self):
+        return dict((name, value) for name, _, value in self.read_extended_tags())
+
+    def clear_tags(self):
+        self._dirty=True
+        self.file_io.clear_tags()
+    
+    def write_tags(self, tags):
+        self._dirty = True
+        cur_rows = self.read_extended_tags()
+        locations = dict((tag_name, location) for tag_name, location, _ in cur_rows)
+        for name, value in tags.items():
+            value = util.seqify(value)
+            if not self.type_map[name].is_multival:
+                value = [value[0]]
+            value = [str(item) if isinstance(item, FlexDateTime) else item for item in value ] 
+            if name in locations:
+                self.file_io.set_tag(locations[name], value)
+            elif name in self.loc_map:
+                self.file_io.set_tag(self.loc_map[name][0], value)
             else:
-                file_io = self.file_io_class(self.path)
-                bytes, mime_type = file_io.get_cover_art()
-                return albumart.AlbumArt(bytes, mime_type)
-        
-    def save(self):        
-        art = self._embedded_cover
-        assert(self.embedded_cover_key or not art)
-        file_io = self.file_io_class(self.path)
-        file_io.clear_tags()
-        for tag_name, location, value in self.rows():
-            if tag_name:
-                if not self.type_map[tag_name].is_multival:
-                    value = [value[0]]
-                if type(value[0]) == FlexDateTime:
-                    value = [str(v) for v in value]
-            if not location:
-                location = self.loc_map.get(tag_name, [None])[0]
-            if location:
-                file_io.set_tag(location, value)
-            else:
-                _logger.warn("unable to save %s for file '%s%': "
-                             "location unkown for %s" % (tag_name, self.path, self.kind))    
-        if art:
-            file_io.set_cover_art(art.bytes, art.mime_type)
-        file_io.save()
-        
-    def _discover_art(self, file_io):
-        self.embedded_cover_key = file_io.cover_art_key()
-        
-    def _load_tags(self, file_io):
-        self.tags = {}
-        self.locations = {}
-        self.unkown_tags = {}
-        self.unkown_locations = {}
-        for key in file_io.keys():
-            is_known, tags = self._lookup(key, file_io)
-            if is_known:
-                self.tags.update((tag_name, mapping[1]) for tag_name, mapping in tags.items())
-                self.locations.update((tag_name, mapping[0]) for tag_name, mapping in tags.items())
-            else:
-                self.unkown_tags.update((tag_name, mapping[1]) for tag_name, mapping in tags.items())
-                self.unkown_locations.update((tag_name, mapping[0]) for tag_name, mapping in tags.items())
-        
-    def _lookup(self, key, file_io):
-        tags = {}
+                _logger.error("unable to save %s for file '%s': "
+                              "location unkown for %s" % (tag_name, self.path, self.kind))
+            
+    def read_extended_tags(self, keep_unknown=False):
+        rows = []
+        for key in self.file_io.keys():
+            rows.extend( self._lookup(key, keep_unknown) )
+        return rows
+            
+    def _lookup(self, key, keep_unknown=False):
+        rows = []
         for tag_name, tag_locs in self.loc_map.items():
             for loc in tag_locs:
                 if loc.key == key:
-                    data = file_io.get_tag(loc)
+                    data = self.file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
                     value = self._parse_tag( tag_type, data )
-                    tags[tag_name] = (loc, value)
-        if not tags:
-            # get the ascii represantation which will escape non ascii bytes whose
-            # encoding we are not certain of
+                    rows.append((tag_name, loc, value))
+        if not rows and keep_unknown:
             loc = tagmap.Location(key, None)
-            data = file_io.get_tag(loc)
+            data = self.file_io.get_tag(loc)
             tags[key] = (loc, data)
-            return False, tags
-        else:
-            return True, tags
+            rows.append((None, loc, value))
+        return rows
 
     @staticmethod
     def _parse_tag(tag_type, text):

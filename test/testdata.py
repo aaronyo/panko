@@ -48,7 +48,6 @@ TRACK_3_TAGS = {
     'track_number': [1],
     'artist': ['Gary Bartz'],
     'encoder_app': ['iTunes 8.2'],
-    'encoder_params': [Bytes('vers\x00\x00\x00\x01acbf\x00\x00\x00\x03vbrq\x00\x00\x00`')],
     'is_compilation': [True],
     'album_artist': ['Various'],
     'album_title': ['Jazz Dance Classics Volume 1']

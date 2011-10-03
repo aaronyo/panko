@@ -134,12 +134,6 @@ encoder:
     mp4: ----:com.apple.iTunes:Encoder
     flac: encoder
 
-encoder_params:
-    type: Bytes
-    mp3: TSSE
-    mp4: ----:com.apple.iTunes:Encoding Params
-    flac: encoder settings
-
 encoded_by:
     type: unicode
     mp4: \xa9enc
@@ -197,7 +191,7 @@ itunes_purchase_country_code:
 
 isrc:
     type: unicode
-    mp4: "----:com.apple.iTunes:ISRC"
+    mp4: ----:com.apple.iTunes:ISRC
     mp3: TSRC
     flac: isrc
 

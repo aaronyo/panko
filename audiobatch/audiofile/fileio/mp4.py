@@ -21,13 +21,15 @@ class MP4IO( fileio.FileIO ):
 
     def set_tag(self, location, value):
         key = location.key.decode('string_escape')
+        if key.startswith('----'):
+            value = [v.encode('utf-8') if hasattr(v, '__unicode__') else str(v) for v in value ]
         if self.join_multivalue:
             value = util.join_items(value, self.join_char)
         if location.part != None:
             data = self.mtg_file.get(key, None)
             new_data = []
             for i, v in enumerate(value):
-                parts = data[i] if data and i < len(data) else [0,0]
+                parts = list(data[i]) if data and i < len(data) else [0,0]
                 parts[location.part] = v
                 new_data.append(parts)
             self.mtg_file[key] = new_data

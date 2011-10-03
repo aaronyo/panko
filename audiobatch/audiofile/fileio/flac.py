@@ -10,6 +10,7 @@ class FLACIO( fileio.FileIO ):
         super(FLACIO, self).__init__( flac.FLAC(path) )
 
     def set_tag(self, location, value):
+        value = [unicode(v) for v in value]
         self.mtg_file[location.key] = value
         
     def get_tag(self, location):
