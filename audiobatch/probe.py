@@ -1,7 +1,6 @@
 import sys
 import argparse
 import csv
-import sys
 import StringIO
 
 from audiobatch import audiofile
@@ -17,7 +16,7 @@ def parse_args():
 def main():
     args = parse_args()
     for file_path in args.files:
-        af = audiofile.load(file_path)
+        af = audiofile.open(file_path)
         print
         print "Tags:"
         print formatted_rows( af.read_extended_tags(keep_unknown=True), args.raw )

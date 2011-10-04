@@ -14,13 +14,13 @@ _logger = logging.getLogger()
 
 _default_handler = None
 #FIXME: aboyd: load or open?
-def load(path, cover_art="cover.jpg"):
+def open(path):
     global _default_handler
     if not _default_handler:
         _default_handler = AudioFileHandler()
-    return _default_handler.load(path, cover_art)
+    return _default_handler.open(path)
 
-def load_folder_art(path, filename=None):
+def load_folder_art(path, filename):
     dir_ = os.path.dirname(path)
     img_path = os.path.join(dir_, filename)
     if not os.path.exists(img_path):
@@ -35,8 +35,8 @@ class AudioFileHandler(object):
         else:
             self.tag_map = tagmap.load(config)
             
-    def load(self, path, cover_art=None):
-        return AudioFile(path, self.tag_map, cover_art)
+    def open(self, path):
+        return AudioFile(path, self.tag_map)
 
 class Invalid(object):
     def __str__(self):
@@ -44,15 +44,10 @@ class Invalid(object):
 
 class AudioFile( object ):
     
-    def __init__(self, path, tag_map, cover_art=None):
+    def __init__(self, path, tag_map):
         self._dirty = False
         self.path = path
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
-        self.folder_cover_path = None
-        if cover_art:
-            check_path = os.path.join(os.path.dirname(path), cover_art)
-            if os.path.exists( check_path ):
-                self.folder_cover_path = check_path
                 
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
@@ -69,16 +64,20 @@ class AudioFile( object ):
         self.kind = file_io_class.kind
         self.file_io = file_io_class(self.path)
     
-    @property
     def has_folder_cover(self):
-        return self.folder_cover_path != None
+        return self.folder_cover_path() != None
     
-    @property
     def has_embedded_cover(self):
         return self.file_io.cover_art_key() != None
         
     def folder_cover(self):
-        return albumart.load(self.folder_cover_path)
+        return albumart.load(self.folder_cover_path())
+        
+    def folder_cover_path(self, cover_options=['cover.jpg', 'folder.jpg']):
+        for filename in cover_options:
+            check_path = os.path.join(os.path.dirname(self.path), filename)
+            if os.path.exists( check_path ):
+                return check_path        
 
     def embed_cover(self, art):
         self._dirty = True

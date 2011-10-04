@@ -1,1 +1,1 @@
-from .audiofile import load, load_folder_art, AudioFile, AudioFileHandler
+from .audiofile import open, load_folder_art, AudioFile, AudioFileHandler
