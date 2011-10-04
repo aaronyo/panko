@@ -64,8 +64,8 @@ class Location(object):
         # with mutagen, so use repr and ditch the quotes
         return Location(key, part)
 
-    def __str__(self):
+    def __unicode__(self):
         if self.part != None:
-            return "%s[%i]" % (self.key, self.part)
+            return u"%s[%i]" % (self.key, self.part)
         else:
             return self.key
