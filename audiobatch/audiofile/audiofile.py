@@ -172,10 +172,11 @@ class AudioFile( object ):
             # Get rid of Mutagen types before parsing, but
             # don't convert binary strings to unicode
             try:
-                if not type(value) in [bool, float, int, str, unicode]:
+                if type(value) not in [bool, float, int, str, unicode]:
                     value = unicode(value)
                 if parse_func == bool and isinstance(value, basestring):
-                    value = int(value)
+                    value = {'1': 1,  'true': 1, 't': 1,
+                             '0': 0, 'false': 0, 'f': 0}[ value.lower() ]
                 return parse_func(value)
             except:
                 #FIXME: this needs to be more informative if
