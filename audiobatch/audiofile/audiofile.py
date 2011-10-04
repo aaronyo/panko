@@ -45,6 +45,7 @@ class Invalid(object):
 class AudioFile( object ):
     
     def __init__(self, path, tag_map, cover_art=None):
+        self._dirty = False
         self.path = path
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
         self.folder_cover_path = None
@@ -67,7 +68,6 @@ class AudioFile( object ):
             
         self.kind = file_io_class.kind
         self.file_io = file_io_class(self.path)
-        self._dirty = False
     
     @property
     def has_folder_cover(self):
@@ -104,7 +104,7 @@ class AudioFile( object ):
             self._dirty = False
         
     def read_tags(self):
-        return dict((name, value) for name, _, value in self._extended_tags())
+        return dict((name, value) for name, value, _, _ in self._extended_tags())
 
     def clear_tags(self):
         self._dirty=True
@@ -113,7 +113,7 @@ class AudioFile( object ):
     def write_tags(self, tags):
         self._dirty = True
         cur_rows = self._extended_tags()
-        locations = dict((tag_name, location) for tag_name, location, _ in cur_rows)
+        locations = dict((tag_name, location) for tag_name, _, location, _ in cur_rows)
         for name, value in tags.items():
             value = util.seqify(value)
             if not self.type_map[name].is_multival:
@@ -128,8 +128,10 @@ class AudioFile( object ):
                               "location unkown for %s" % (tag_name, self.path, self.kind))
             
     def read_extended_tags(self, keep_unknown=False):
-        rows = self._extended_tags(keep_unknown)
-        return sorted(rows)
+        rows = sorted(self._extended_tags(keep_unknown), key=lambda r: (r[0], unicode(r[2])))
+        while rows[0][0] == None:
+            rows.append(rows.pop(0))
+        return rows
 
     def _extended_tags(self, keep_unknown=False):
         rows = []
@@ -145,11 +147,10 @@ class AudioFile( object ):
                     data = self.file_io.get_tag(loc)
                     tag_type = self.type_map[tag_name]
                     value = self._parse_tag( tag_type, data )
-                    rows.append((tag_name, loc, value))
+                    rows.append( (tag_name, value, loc, self.file_io.get_raw(key)) )
         if not rows and keep_unknown:
             loc = tagmap.Location(key, None)
-            data = self.file_io.get_tag(loc)
-            rows.append((None, loc, data))
+            rows.append( (None, None, loc, self.file_io.get_raw(key)) )
         return rows
 
     @staticmethod
@@ -171,10 +172,11 @@ class AudioFile( object ):
             # Get rid of Mutagen types before parsing, but
             # don't convert binary strings to unicode
             try:
-                if isinstance(value, basestring):
-                    return parse_func(value)
-                else:
-                    return parse_func(unicode(value))
+                if not type(value) in [bool, float, int, str, unicode]:
+                    value = unicode(value)
+                if parse_func == bool and isinstance(value, basestring):
+                    value = int(value)
+                return parse_func(value)
             except:
                 #FIXME: this needs to be more informative if
                 #       any exception is swallowed... and probably

@@ -17,16 +17,19 @@ class FileIO( object ):
         return self.mtg_file.keys()
                 
     def set_tag(self, location, value):
-        return NotImplementedError
+        raise NotImplementedError
 
     def get_tag(self, location):
-        return NotImplementedError
+        raise NotImplementedError
+    
+    def get_raw(self, key):
+        return self.mtg_file.get(key, None)
 
     def set_cover_art(self, bytes, mime_type):
-        return NotImplementedError
+        raise NotImplementedError
 
     def get_cover_art(self):
-        return NotImplementedError
+        raise NotImplementedError
     
     def cover_art_key(self):
-        return NotImplementedError
+        raise NotImplementedError

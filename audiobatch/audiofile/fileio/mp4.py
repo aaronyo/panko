@@ -48,6 +48,10 @@ class MP4IO( fileio.FileIO ):
             else:
                 return data
         
+    def get_raw(self, key):
+        key = key.decode('string_escape')
+        return self.mtg_file.get(key, None)
+
     def cover_art_key(self):
         if self.default_cover_key in self.mtg_file:
             return self.default_cover_key

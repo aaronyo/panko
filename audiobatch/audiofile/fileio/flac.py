@@ -15,3 +15,6 @@ class FLACIO( fileio.FileIO ):
         
     def get_tag(self, location):
         return self.mtg_file.get(location.key, None)
+        
+    def cover_art_key(self):
+        return None
