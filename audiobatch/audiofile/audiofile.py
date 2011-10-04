@@ -14,7 +14,7 @@ _logger = logging.getLogger()
 
 _default_handler = None
 #FIXME: aboyd: load or open?
-def load(path, cover_art=None):
+def load(path, cover_art="cover.jpg"):
     global _default_handler
     if not _default_handler:
         _default_handler = AudioFileHandler()
@@ -76,6 +76,9 @@ class AudioFile( object ):
     @property
     def has_embedded_cover(self):
         return self.file_io.cover_art_key() != None
+        
+    def folder_cover(self):
+        return albumart.load(self.folder_cover_path)
 
     def embed_cover(self, art):
         self._dirty = True
@@ -84,6 +87,9 @@ class AudioFile( object ):
     def extract_cover(self):
         bytes, mime_type = self.file_io.get_cover_art()
         return albumart.AlbumArt(bytes, mime_type)
+
+    def embedded_cover_key(self):
+        return self.file_io.cover_art_key()
     
     def __del__(self):
         self.flush()
@@ -98,7 +104,7 @@ class AudioFile( object ):
             self._dirty = False
         
     def read_tags(self):
-        return dict((name, value) for name, _, value in self.read_extended_tags())
+        return dict((name, value) for name, _, value in self._extended_tags())
 
     def clear_tags(self):
         self._dirty=True
@@ -106,7 +112,7 @@ class AudioFile( object ):
     
     def write_tags(self, tags):
         self._dirty = True
-        cur_rows = self.read_extended_tags()
+        cur_rows = self._extended_tags()
         locations = dict((tag_name, location) for tag_name, location, _ in cur_rows)
         for name, value in tags.items():
             value = util.seqify(value)
@@ -122,6 +128,10 @@ class AudioFile( object ):
                               "location unkown for %s" % (tag_name, self.path, self.kind))
             
     def read_extended_tags(self, keep_unknown=False):
+        rows = self._extended_tags(keep_unknown)
+        return sorted(rows)
+
+    def _extended_tags(self, keep_unknown=False):
         rows = []
         for key in self.file_io.keys():
             rows.extend( self._lookup(key, keep_unknown) )
@@ -139,8 +149,7 @@ class AudioFile( object ):
         if not rows and keep_unknown:
             loc = tagmap.Location(key, None)
             data = self.file_io.get_tag(loc)
-            tags[key] = (loc, data)
-            rows.append((None, loc, value))
+            rows.append((None, loc, data))
         return rows
 
     @staticmethod

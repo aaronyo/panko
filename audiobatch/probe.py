@@ -17,7 +17,16 @@ def main():
     args = parse_args()
     for file_path in args.files:
         af = audiofile.load(file_path)
-        print format_rows( af.rows() )
+        print format_rows( af.read_extended_tags(keep_unknown=True) )
+        print "Cover Art:"
+        if af.has_folder_cover:
+            cover = af.folder_cover()
+            print "Folder | %s | %s | %s" % (af.folder_cover_path, cover.mime_type, len(cover.bytes))
+        if af.has_embedded_cover:
+            cover = af.extract_cover()
+            print "Embedded | %s | %s | %s " % (af.embedded_cover_key(), cover.mime_type, len(cover.bytes))
+            
+        
 
 def decode_all(values):
     decoded = []

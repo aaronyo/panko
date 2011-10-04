@@ -54,3 +54,6 @@ class AlbumArt( object ):
             return Image.from_pil_image( new_pil_image, self.format )
         else:
             return Image( copy.deepcopy(self.bytes), self.format )
+
+    def __str__(self):
+        return "Image = %s, %d bytes" % (self.mime_type, len(self.bytes))
