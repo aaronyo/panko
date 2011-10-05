@@ -21,10 +21,10 @@ def main():
         print "Tags:"
         print formatted_rows( af.read_extended_tags(keep_unknown=True), args.raw )
         print "Cover Art:"
-        if af.has_folder_cover:
+        if af.has_folder_cover():
             cover = af.folder_cover()
-            print "Folder Image: path='%s', type='%s', size=%s," % (af.folder_cover_path, cover.format, len(cover.bytes))
-        if af.has_embedded_cover:
+            print "Folder Image: path='%s', type='%s', size=%s," % (af.folder_cover_path(), cover.format, len(cover.bytes))
+        if af.has_embedded_cover():
             cover = af.extract_cover()
             print "Embedded Image: location='%s', type='%s', size=%s, " % (af.embedded_cover_key(), cover.format, len(cover.bytes))
         print    
