@@ -179,6 +179,9 @@ class AudioFile( object ):
                 if parse_func == bool and isinstance(value, basestring):
                     value = {'1': 1,  'true': 1, 't': 1,
                              '0': 0, 'false': 0, 'f': 0}[ value.lower() ]
+                if parse_func == unicode and isinstance(value, str):
+                    # assume any raw strings are utf-8 or ascii
+                    return unicode(value, 'utf-8')
                 return parse_func(value)
             except:
                 #FIXME: this needs to be more informative if

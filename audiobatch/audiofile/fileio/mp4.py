@@ -22,7 +22,9 @@ class MP4IO( fileio.FileIO ):
     def set_tag(self, location, value):
         key = location.key.decode('string_escape')
         if key.startswith('----'):
-            value = [v.encode('utf-8') if hasattr(v, '__unicode__') else str(v) for v in value ]
+            value = [ unicode(v).encode('utf-8')
+                      if hasattr(v, '__unicode__') or isinstance(v, unicode)
+                      else str(v) for v in value ]
         if self.join_multivalue:
             value = util.join_items(value, self.join_char)
         if location.part != None:
