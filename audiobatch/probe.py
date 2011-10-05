@@ -21,15 +21,23 @@ def main():
         print "Tags:"
         print formatted_rows( af.read_extended_tags(keep_unknown=True), args.raw )
         print "Cover Art:"
-        if af.has_folder_cover():
-            cover = af.folder_cover()
-            print "Folder Image: path='%s', type='%s', size=%s," % (af.folder_cover_path(), cover.format, len(cover.bytes))
-        if af.has_embedded_cover():
-            cover = af.extract_cover()
-            print "Embedded Image: location='%s', type='%s', size=%s, " % (af.embedded_cover_key(), cover.format, len(cover.bytes))
+        folder, embedded = af.folder_cover(), af.extract_cover()
+        if folder:
+            location = "  Folder Image: path='%s', " % af.folder_cover_path()
+            print location + art_details(folder)            
+        if embedded:
+            location =  "  Embedded Image: key='%s', " % af.embedded_cover_key()
+            print location + art_details(embedded)
+        if not (folder or embedded):
+            print 'None found'
         print    
         
-
+def art_details(art):
+    dim = "x".join( map(str, art.dimensions()) )
+    return "type='%s', size=%s, dimensions=%s" % \
+           (art.format, len(art.bytes), dim)
+    
+    
 def decode_all(values):
     decoded = []
     for v in values:
@@ -58,7 +66,7 @@ def formatted_rows(rows, raw=False):
     pad = [ max(l)+1 for l in col_lengths ]
     result = u""
     for row in frmt_rows:
-        result += u"%-*s | %-*s"
+        result += u"  %-*s | %-*s"
         result_vars = [pad[0], row[0], pad[1], row[1]]
         if raw:
             result += " | %-*s | %s"
