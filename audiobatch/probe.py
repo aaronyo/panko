@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('-r','--raw', action='store_true', default=False)
     return parser.parse_args()
     
+    
 def main():
     args = parse_args()
     for file_path in args.files:
@@ -32,6 +33,7 @@ def main():
             print 'None found'
         print    
         
+        
 def art_details(art):
     dim = "x".join( map(str, art.dimensions()) )
     return "type='%s', size=%s, dimensions=%s" % \
@@ -44,8 +46,7 @@ def decode_all(values):
         # Any data must support decoding to unicode
         decoded.append( unicode(v).encode('utf-8') )
     return decoded
-            
-        
+    
 
 def formatted_rows(rows, raw=False):
     def format_value(value):
