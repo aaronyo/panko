@@ -1,4 +1,5 @@
-import PIL
+import PIL.Image
+import StringIO
 import os
 
 def load(path):
@@ -30,7 +31,7 @@ class AlbumArt( object ):
         return pil_image
 
     def dimensions( self ):
-        return self._pil_image().size
+        return self.to_pil_image().size
 
     @property
     def mime_type(self):
