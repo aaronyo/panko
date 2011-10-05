@@ -71,7 +71,9 @@ class AudioFile( object ):
         return self.file_io.cover_art_key() != None
         
     def folder_cover(self):
-        return albumart.load(self.folder_cover_path())
+        path = self.folder_cover_path()
+        if path:
+            return albumart.load(path)
         
     def folder_cover_path(self, cover_options=['cover.jpg', 'folder.jpg']):
         for filename in cover_options:
@@ -84,8 +86,9 @@ class AudioFile( object ):
         self.file_io.set_cover_art(art.bytes, art.mime_type)
         
     def extract_cover(self):
-        bytes, mime_type = self.file_io.get_cover_art()
-        return albumart.AlbumArt(bytes, mime_type)
+        if self.embedded_cover_key():
+            bytes, mime_type = self.file_io.get_cover_art()
+            return albumart.AlbumArt(bytes, mime_type)
 
     def embedded_cover_key(self):
         return self.file_io.cover_art_key()
