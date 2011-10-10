@@ -21,7 +21,7 @@ class FlexDateTime( object ):
                 ( tuple(time.split("-")) + (None, None, None) )[:3]
         
         return FlexDateTime( *( int(x) if x else None for x
-                             in (year, month, day)), #, hour, min, sec) ),
+                             in (year, month, day, hour, min, sec) ),
                            allow_invalids = allow_invalids )
 
     _formats = ['%04i'] + ['%02i'] * 5

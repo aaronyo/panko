@@ -1,1 +1,0 @@
-3 Read/Write embedded image formats (current only write to MP3)

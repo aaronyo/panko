@@ -3,8 +3,8 @@ import argparse
 import csv
 import StringIO
 
-from audiobatch import audiofile
-from audiobatch import util
+from panko import audiofile
+from panko import util
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Display an audio files meta data.')

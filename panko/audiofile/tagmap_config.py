@@ -2,7 +2,7 @@
 #   To indicate multiple possible names for a format's tag, use a YAML list
 #   The first name will be used by default when writing.
 #
-#   Some audiobatch tags, like track_number and track_total, may map to 
+#   Some tags, like track_number and track_total, may map to 
 #   information stored in a single file tag, or a compound tag.  [] notation
 #   is used to indicate which part of the file's tag is desired.  The actual
 #   parsing and conunicodeuction of the compound tag is hard wired in the code.

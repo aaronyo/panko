@@ -1,18 +1,14 @@
 import os.path
-from audiobatch.audiofile.flexdatetime import FlexDateTime
-from audiobatch.audiofile.bytes import Bytes
+import shutil
+from panko.audiofile.flexdatetime import FlexDateTime
+from panko.audiofile.bytes import Bytes
 
-AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
-AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'audio')
-TEMP_DIR = os.path.join( os.path.dirname(__file__), 'temp')
-TRACK_1_PATH = os.path.join( AUDIO_DIR,
-                             'Alex Lloyd/Black the Sun/01 Melting.flac' )
-ALBUM_1_COVER_PATH = os.path.join( AUDIO_DIR,
-                                   'Alex Lloyd/Black the Sun/cover.jpg' )
-TRACK_2_PATH = os.path.join( AUDIO_DIR,
-                             'Dire Straits/Making Movies/01 Tunnel Of Love.mp3' )
-TRACK_3_PATH = os.path.join( AUDIO_DIR,
-                             'Compilations/Jazz Dance Classics Volume 1/01 Celestial Blues.m4a' )
+AUDIO_DIR = os.path.join( os.path.dirname(__file__), 'data')
+TEMP_DIR = os.path.join( AUDIO_DIR, 'temp')
+FLAC_PATH = os.path.join( AUDIO_DIR, 'notags.flac' )
+MP3_PATH = os.path.join( AUDIO_DIR, 'notags.mp3' )
+M4A_PATH = os.path.join( AUDIO_DIR, 'notags.m4a' )
+COVER_PATH = os.path.join( AUDIO_DIR, 'cover.jpg' )
 
 TRACK_1_TAGS = { 
     'artist': ['Alex Lloyd'],

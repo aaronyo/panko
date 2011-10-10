@@ -15,13 +15,12 @@ class TestWrite( unittest.TestCase ):
     def tearDown(self):
         for f in os.listdir(td.TEMP_DIR):
             f_path = os.path.join(td.TEMP_DIR, f)
-#            os.unlink(f_path)
+            os.unlink(f_path)
                 
     def test_write__mp3(self):
         target = os.path.join(td.TEMP_DIR, 'test_write.mp3')
-        shutil.copy(td.TRACK_2_PATH, target)
+        shutil.copy(td.MP3_PATH, target)
         af = audiofile.open(target)
-        af.clear_tags()
         af.write_tags(td.TRACK_1_TAGS)
         af.flush()
         print audiofile.open(target).read_tags()
@@ -29,17 +28,16 @@ class TestWrite( unittest.TestCase ):
         
     def test_write__mp4(self):
         target = os.path.join(td.TEMP_DIR, 'test_write.m4a')
-        shutil.copy(td.TRACK_3_PATH, target)
+        shutil.copy(td.M4A_PATH, target)
         af = audiofile.open(target)
-        af.clear_tags()
         af.write_tags(td.TRACK_2_TAGS)
         del af
         self.assertEquals( td.TRACK_2_TAGS, audiofile.open(target).read_tags() )
         
     def test_image_embed_and_extract__mp3(self):
         target = os.path.join(td.TEMP_DIR, 'test_write_image.mp3')
-        shutil.copy(td.TRACK_2_PATH, target)
-        img = audiofile.load_folder_art(td.TRACK_1_PATH, "cover.jpg")
+        shutil.copy(td.MP3_PATH, target)
+        img = audiofile.load_folder_art(td.FLAC_PATH, "cover.jpg")
         af = audiofile.open(target)
         af.embed_cover(img)
         af.flush()
@@ -49,8 +47,8 @@ class TestWrite( unittest.TestCase ):
     
     def test_image_embed_and_extract__mp4(self):
         target = os.path.join(td.TEMP_DIR, 'test_write_image.m4a')
-        shutil.copy(td.TRACK_3_PATH, target)
-        img = audiofile.load_folder_art(td.TRACK_1_PATH, "cover.jpg")
+        shutil.copy(td.M4A_PATH, target)
+        img = audiofile.load_folder_art(td.FLAC_PATH, "cover.jpg")
         af = audiofile.open(target)
         af.embed_cover(img)
         af.flush()
@@ -59,8 +57,8 @@ class TestWrite( unittest.TestCase ):
         self.assertEquals( img, audiofile.open(target).extract_cover() )
 
     def test_only_write_one_track_number(self):
-        cases = [(td.TRACK_2_PATH, 'test_parts.mp3'),
-                 (td.TRACK_3_PATH, 'test_parts.mp4')]
+        cases = [(td.MP3_PATH, 'test_parts.mp3'),
+                 (td.M4A_PATH, 'test_parts.mp4')]
         for case in cases:
             print case
             source, target = case
@@ -77,8 +75,8 @@ class TestWrite( unittest.TestCase ):
         from mutagen import mp4
         def package_trck(trck_list):
             return id3.TRCK( 0, ["%i/%i" % (t[0], t[1]) for t in trck_list] )
-        cases = [(td.TRACK_2_PATH, 'test_parts_read.mp3', id3.ID3, 'TRCK', package_trck),
-                 (td.TRACK_3_PATH, 'test_parts_read.mp4', mp4.MP4, 'trkn', lambda x: x)]
+        cases = [(td.MP3_PATH, 'test_parts_read.mp3', id3.ID3, 'TRCK', package_trck),
+                 (td.M4A_PATH, 'test_parts_read.mp4', mp4.MP4, 'trkn', lambda x: x)]
         for case in cases:
             print case
             source, target, mtg_class, mtg_key, mtg_packager = case
@@ -91,8 +89,8 @@ class TestWrite( unittest.TestCase ):
             self.assertEquals([9,10], af.read_tags()['track_number'])
     
     def test_join_multival_on_write(self):
-        cases = [(td.TRACK_2_PATH, 'test_multival.mp3'),
-                 (td.TRACK_3_PATH, 'test_multival.mp4')]
+        cases = [(td.MP3_PATH, 'test_multival.mp3'),
+                 (td.M4A_PATH, 'test_multival.mp4')]
         for case in cases:
             print case
             source, target = case
@@ -106,19 +104,24 @@ class TestWrite( unittest.TestCase ):
     
     def test_import_flac_to_mp4(self):
         cases = [
-                 (td.TRACK_1_PATH, td.TRACK_2_PATH, 'test_import_flac.mp3'),
-                 (td.TRACK_3_PATH, td.TRACK_2_PATH, 'test_import_mp4.mp3'),
-                 (td.TRACK_1_PATH, td.TRACK_3_PATH, 'test_import_flac.m4a'),
-                 (td.TRACK_2_PATH, td.TRACK_3_PATH, 'test_import_mp3.m4a'),
-                 (td.TRACK_2_PATH, td.TRACK_1_PATH, 'test_import_mp3.flac'),
-                 (td.TRACK_3_PATH, td.TRACK_1_PATH, 'test_import_mp4.flac'),
+                 (td.FLAC_PATH, TRACK_1_TAGS, td.MP3_PATH, 'test_import_flac.mp3'),
+                 (td.M4A_PATH,  TRACK_3_TAGS, td.MP3_PATH, 'test_import_mp4.mp3'),
+                 (td.FLAC_PATH, TRACK_1_TAGS, td.M4A_PATH, 'test_import_flac.m4a'),
+                 (td.MP3_PATH, TRAC_2_TAGS, 'test_import_mp3.m4a'),
+                 (td.MP3_PATH, TRACK_2_TAGS, 'test_import_mp3.flac'),
+                 (td.M4A_PATH, TRACK_3_TAGS, 'test_import_mp4.flac'),
                  ]
         for case in cases:
             print case
-            source, original, target = case
+            source, tags, original, target = case
+            _, ext = os.path.splitext(source)
+            tagged_source = os.path.join(td.TEMP_DIR, 'tagged'+ext)
+            shutil.copy(source, tagged_source)
+            audiofile.open(tagged_source).write_tags(tags)
+
             target = os.path.join(td.TEMP_DIR, target)
             shutil.copy(original, target)
-            sourcetags = audiofile.open(source).read_tags()
+            sourcetags = audiofile.open(tagged_source).read_tags()
             af = audiofile.open(target)
             af.clear_tags()
             af.write_tags(sourcetags)
