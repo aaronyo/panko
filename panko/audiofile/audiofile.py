@@ -48,7 +48,6 @@ class AudioFile( object ):
         self._dirty = False
         self.path = path
         self.mod_time = datetime.fromtimestamp( os.stat(path)[stat.ST_MTIME] )
-                
         _, ext = os.path.splitext( path )
         self.ext = ext[1:] # drop the "."
         if self.ext in mp3.EXTENSIONS:
@@ -131,7 +130,7 @@ class AudioFile( object ):
             
     def read_extended_tags(self, keep_unknown=False):
         rows = sorted(self._extended_tags(keep_unknown), key=lambda r: (r[0], unicode(r[2])))
-        while rows[0][0] == None:
+        while rows and rows[0][0] == None:
             rows.append(rows.pop(0))
         return rows
 

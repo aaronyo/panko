@@ -2,11 +2,13 @@ from collections import namedtuple
 import re
 from .flexdatetime import FlexDateTime
 from .bytes import Bytes
-from . import tagmap_config
+from pkg_resources import resource_string
 import yaml
 
+from pkg_resources import resource_string
 
-def load(data=tagmap_config.DEFAULT_MAP):
+def load(data=None):
+    data = data or resource_string(__name__, 'tagmap.yaml')
     return TagMap(data)
 
 class TagMap(object):

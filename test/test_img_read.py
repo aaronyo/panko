@@ -3,7 +3,7 @@ import hashlib
 import datetime
 from pprint import pprint
 
-from audiobatch import audiofile
+from panko import audiofile
 
 from . import testdata as td
 

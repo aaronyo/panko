@@ -1,13 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import imp
 
-tagconf = imp.load_source('tagmap_config', 'audiofile/tagmap_config.py')
-
-foo.MyClass()
-
 setup(
-    entry_points = {
-        'console_scripts': ['panko = panko.command.panko']
-    }
-    
+    name='panko',
+    packages=find_packages(),
+    entry_points = { 'console_scripts':['panko = panko.command.pankocmd:main'] },
+    package_data = { 'panko.audiofile': ['tagmap.yaml'] }
 )

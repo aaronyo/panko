@@ -5,6 +5,8 @@ class FileIO( object ):
     
     def __init__(self, mtg_file):
         self.mtg_file = mtg_file
+        if self.mtg_file.tags == None:
+            self.mtg_file.add_tags()
 
     def save(self):
         self.mtg_file.save()

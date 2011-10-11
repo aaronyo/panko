@@ -3,8 +3,8 @@ import unittest
 import shutil
 import hashlib
 
-from audiobatch import audiofile
-from audiobatch.audiofile.flexdatetime import FlexDateTime
+from panko import audiofile
+from panko.audiofile.flexdatetime import FlexDateTime
 
 from . import testdata as td
 
@@ -14,8 +14,9 @@ class TestWrite( unittest.TestCase ):
         
     def tearDown(self):
         for f in os.listdir(td.TEMP_DIR):
-            f_path = os.path.join(td.TEMP_DIR, f)
-            os.unlink(f_path)
+            if f != ".gitignore":
+                f_path = os.path.join(td.TEMP_DIR, f)
+                os.unlink(f_path)
                 
     def test_write__mp3(self):
         target = os.path.join(td.TEMP_DIR, 'test_write.mp3')
@@ -71,11 +72,10 @@ class TestWrite( unittest.TestCase ):
             self.assertEquals([9], af.read_tags()['track_number'])
 
     def test_read_multiple_track_number(self):
-        from mutagen import id3
-        from mutagen import mp4
+        from mutagen import mp3, id3, mp4
         def package_trck(trck_list):
             return id3.TRCK( 0, ["%i/%i" % (t[0], t[1]) for t in trck_list] )
-        cases = [(td.MP3_PATH, 'test_parts_read.mp3', id3.ID3, 'TRCK', package_trck),
+        cases = [(td.MP3_PATH, 'test_parts_read.mp3', mp3.MP3, 'TRCK', package_trck),
                  (td.M4A_PATH, 'test_parts_read.mp4', mp4.MP4, 'trkn', lambda x: x)]
         for case in cases:
             print case
@@ -102,14 +102,14 @@ class TestWrite( unittest.TestCase ):
             af = audiofile.open(target)
             self.assertEquals(['a/b'], af.read_tags()['artist'])
     
-    def test_import_flac_to_mp4(self):
+    def test_import(self):
         cases = [
-                 (td.FLAC_PATH, TRACK_1_TAGS, td.MP3_PATH, 'test_import_flac.mp3'),
-                 (td.M4A_PATH,  TRACK_3_TAGS, td.MP3_PATH, 'test_import_mp4.mp3'),
-                 (td.FLAC_PATH, TRACK_1_TAGS, td.M4A_PATH, 'test_import_flac.m4a'),
-                 (td.MP3_PATH, TRAC_2_TAGS, 'test_import_mp3.m4a'),
-                 (td.MP3_PATH, TRACK_2_TAGS, 'test_import_mp3.flac'),
-                 (td.M4A_PATH, TRACK_3_TAGS, 'test_import_mp4.flac'),
+                 (td.FLAC_PATH, td.TRACK_1_TAGS, td.MP3_PATH, 'test_import_flac.mp3'),
+                 (td.M4A_PATH,  td.TRACK_3_TAGS, td.MP3_PATH, 'test_import_mp4.mp3'),
+                 (td.FLAC_PATH, td.TRACK_1_TAGS, td.M4A_PATH, 'test_import_flac.m4a'),
+                 (td.MP3_PATH, td.TRACK_2_TAGS, td.M4A_PATH, 'test_import_mp3.m4a'),
+                 (td.MP3_PATH, td.TRACK_2_TAGS, td.FLAC_PATH, 'test_import_mp3.flac'),
+                 (td.M4A_PATH, td.TRACK_3_TAGS, td.FLAC_PATH,'test_import_mp4.flac'),
                  ]
         for case in cases:
             print case

@@ -8,25 +8,17 @@
 #   parsing and conunicodeuction of the compound tag is hard wired in the code.
 #   MP4 and MP3 are expected to separate elements with a "/".
 #
-#   A '*' anywhere in the table indicates that a corresponding footnote exists at
-#   the bottom of the file.
-#
-# genres
+# genre
 #   Mutagen seems to do a good job of converting any numeric id3v1 style genre fields
 #   to the freeform unicodeing version of the genre.  It also generally only writes the freeform
-#   version.  This seems to be the trend -- ditching the numeric genre -- so I don't see
-#   a good reason to support reading or setting it.
+#   version.  This seems to be the trend -- ditching the numeric genre -- so it doesn't seem worth
+#   it to support reading and setting numeric genres.
 #
 # not yet handled:
 #   many id's, like musicbrainz id's and cddb id's... e.g., mp4 UFID tag... not sure when that
 #   tag is used, vs. comment tags for id's, etc.
 #
-#
 
-
-
-DEFAULT_MAP=\
-r"""
 album_title:
     type: unicode[]
     mp4: \xa9alb
@@ -187,8 +179,8 @@ itunes_cddb_id:
 
 itunes_cddb_track_number:
     type: int
-    mp4: "----:com.apple.iTunes:iTunes_CDDB_TrackNumber"
-    mp3: "COMM:iTunes_CDDB_TrackNumber:'eng'"
+    mp4: ----:com.apple.iTunes:iTunes_CDDB_TrackNumber
+    mp3: COMM:iTunes_CDDB_TrackNumber:'eng'
     flac: itunescddbtracknumber
 
 accurate_rip_disc_id:
@@ -220,10 +212,3 @@ upc:
     mp3: TXXX:UPC
     mp4: ----:com.apple.iTunes:UPC
     flac: upc
-"""
-
-# organization      | LaFace
-# source            | CD (Lossless)
-# style             | Urban,Contemporary Pop/Rock,Soundtracks,Film Music
-# upc               | 730082600620
-

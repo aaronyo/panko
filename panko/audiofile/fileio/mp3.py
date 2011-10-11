@@ -5,6 +5,7 @@ from ... import util
 
 EXTENSIONS = ['mp3']
 _ID3_COVER_ART_CODE = 3
+import sys
 
 
 class MP3IO( fileio.FileIO ):
