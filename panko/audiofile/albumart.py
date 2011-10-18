@@ -1,21 +1,30 @@
 import PIL.Image
 import StringIO
 import os
+import urllib2
 
 def load(path):
     format = os.path.splitext(path)[1][1:].lower()
     format = 'jpeg' if format == 'jpg' else format
     return AlbumArt(open(path).read(), format)
-
+    
+def load_url(url):
+    response = urllib2.urlopen(url)
+    return AlbumArt(response.read(), response.headers['content-type'])
+    
 class AlbumArt( object ):
     def __init__( self, bytes, format ):
         self.bytes = bytes
-        if format.startswith('image/'):
-            format = format[6:]
-        self.format = format.lower()
+        self.format = self.std_format(format)
 
     def __eq__(self, other):
        return self.bytes == other.bytes and self.format == other.format
+
+    @staticmethod
+    def std_format(format):
+        if format.startswith('image/'):
+            format = format[6:]
+        return format.lower()
 
     @staticmethod
     def from_pil_image( pil_image, format ):
@@ -36,6 +45,9 @@ class AlbumArt( object ):
     @property
     def mime_type(self):
         return "image/" + self.format.lower()
+        
+    def convert(self, format):
+        return self.from_pil_image( self.to_pil_image(), format )
 
     def conform_size( self, max_side_length ):
         '''Returns a copy conforming to max_side_length'''
@@ -52,9 +64,9 @@ class AlbumArt( object ):
         if target_width != None:
             new_pil_image = pil_image.resize( (target_width, target_height),
                                               PIL.Image.ANTIALIAS )
-            return Image.from_pil_image( new_pil_image, self.format )
+            return AlbumArt.from_pil_image( new_pil_image, self.format )
         else:
-            return Image( copy.deepcopy(self.bytes), self.format )
+            return AlbumArt( copy.deepcopy(self.bytes), self.format )
 
     def __str__(self):
         return "Image = %s, %d bytes" % (self.mime_type, len(self.bytes))
