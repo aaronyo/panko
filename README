@@ -1,44 +1,25 @@
 WIP   This is still very much a work in progress, a skeleton.   Features   WIP
 WIP   are few, and those that do exist contain holes.                      WIP
 
-Audiobatch is a python API for managing your music and audio file collection.
+Panko is a command line tool for managing tags and album art.  It presents a
+a generic tag naming scheme that works across various audio container
+format (e.g., flac, m4a, mp3).  The tags and their mappings to each format
+or easily updated in a text-based config file.
 
-The project started because I was unsatisfied with various mainstream media
-managers' ability to export my lossless library to compressed MP3's
-(while maintaining tags, album art, etc.).  Soon I decided to take
-my initial script and grow it into an API for managing my library.
+A couple example use cases I have used panko for:
+1) Transferring all tags when doing format conversions.
+2) Embedding new album art, including discovery from lastfm.
 
-Here's a quick example I used to clean up some genres:
+The project started because I was unsatisfied with various progams'
+abilities to export my lossless library to compressed MP3's
+while maintaining tags and album art.  There seemed to be many partial
+solutions baked into large multi-purpose media rippers and players, but they
+didn't give me the control I wanted.  E.g., I'd lose album-artist, or it
+would get written in such a way that iTunes couldn't find it, etc.  I just
+wanted a transperent and configurable mechanism for handling the metadata
+mapping between formats.
 
-  from audiobatch import trackrepo
-
-  repo = trackrepo.open("/Volumes/fileshare/media/audio/originals")
-
-  # Find all tracks with genre of "classical" (lower case 'c')
-  tracks = repo.tracks( filter = lambda trk: trk.genre == "classical" )
-
-  # Change the genres to "Classical" (capital 'C')
-  for trk in tracks:
-      trk.genre = "Classical"
-      repo.update_track( trk )
-
-Props to the Mutagen python library, which handles all the byte level
-encoding details for evey audio format I could ever hope to support.
-
-My goal, beyond what Mutagen does, is to provide a generic model for tracks
-and albums that hides you from file operations and file types. It should
-be possible to construct batch operations for cleaning up meta data,
-converting, etc, without knowing the encoding details of a particular audio
-format.  In fact, mutagen already hides you from byte level encoding detail,
-but audiobatch goes a step further and maps meta data to common names.
-
-There are several other API's or apps out there with a similar goal.  I
-gave them only a cursory review before deciding to just dive in.  In part, I
-just needed some python practice.
-
-If you'd like to learn more about what Audiobatch is currently capable of,
-have a look at the scripts in the source "examples" folder.
-
-
-
+The Mutagen python library handles all the byte level encoding details
+for evey audio format I could ever hope to support.  I probably wouldn't have
+even bothered if I did not have that library to build on top of.
 
