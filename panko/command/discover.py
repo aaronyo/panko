@@ -24,5 +24,6 @@ def main():
                 print cover_url
         except Exception as e:
             print 'Trouble with file %s: %s' % (filepath, e)
+
 if __name__ == '__main__':
     main()

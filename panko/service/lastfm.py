@@ -11,8 +11,8 @@ _API_KEY='cf7983d893669afcac2431cd699ae22d'
 def _build_album_info_query(tags):
     query_items = {'method': 'album.getinfo',
                    'api_key': _API_KEY,
-                   'artist': tags['album_artist'][0],
-                   'album': tags['album_title'][0]}
+                   'artist': tags['album_artist'][0].encode('utf-8'),
+                   'album': tags['album_title'][0].encode('utf-8')}
     return urllib.urlencode(query_items)
 
 def _parse_image_url(xml_str):
