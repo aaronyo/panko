@@ -16,6 +16,10 @@ def main():
             import write
             write.main()
             sys.exit(0)
+        elif command == 'discover':
+            import discover
+            discover.main()
+            sys.exit(0)
     
     # An appropriate ommand was not specified
     print 'usage: panko info|import'
