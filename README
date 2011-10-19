@@ -11,12 +11,12 @@ A couple example use cases I have used panko for:
 2) Embedding new album art, including discovery from lastfm.
 
 The project started because I was unsatisfied with various progams'
-abilities to maintainin tags and album art when convertig.  There seeme
+abilities to maintainin tags and album art when convertig.  There seem
 to be many partial solutions baked into large multi-purpose media rippers
 and players, but they didn't give me the control I wanted.  E.g., I'd lose
 album-artist, or it would get written in such a way that iTunes couldn't
 find it, etc.  I wanted a transperent and configurable mechanism for
-mapping the metadata.
+mapping the tags to the exact place I needed them in new files.
 
 The Mutagen python library handles all the byte level encoding details
 for any audio format I could ever hope to support.  I probably wouldn't have
