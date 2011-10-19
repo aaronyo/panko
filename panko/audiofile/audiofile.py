@@ -80,8 +80,10 @@ class AudioFile( object ):
             if os.path.exists( check_path ):
                 return check_path        
 
-    def embed_cover(self, art):
+    def embed_cover(self, art, format=None):
         self._dirty = True
+        if format and art.format != format:
+            art = art.convert(format)
         self.file_io.set_cover_art(art.bytes, art.mime_type)
         
     def extract_cover(self):

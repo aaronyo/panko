@@ -29,10 +29,11 @@ class AlbumArt( object ):
     @staticmethod
     def from_pil_image( pil_image, format ):
         buf = StringIO.StringIO()
-        pil_image.save(buf, format = format or pil_image.format)
+        format = format or pil_image.format
+        pil_image.save(buf, format = format)
         bytes = buf.getvalue()
         buf.close()
-        return AlbumArt(bytes, pil_image.format)
+        return AlbumArt(bytes, format)
         
     def to_pil_image(self):
         pil_image = PIL.Image.open( StringIO.StringIO(self.bytes) )

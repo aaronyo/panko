@@ -11,6 +11,8 @@ def parse_args():
                          help='the audio files that will be inspected')
     parser.add_argument('-c', '--cover', type=str, help='file or url for cover art',
                         default=None)
+    parser.add_argument('-f', '--cover-format', type=str, help='file or url for cover art',
+                        default=None)
     return parser.parse_args()
     
 def main():
@@ -24,7 +26,7 @@ def main():
     for filepath in args.files:
         target_file = audiofile.open(filepath)
         if art:
-            target_file.embed_cover(art)
+            target_file.embed_cover(art, format=args.cover_format)
         
 if __name__ == '__main__':
     main()
