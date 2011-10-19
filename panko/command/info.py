@@ -11,6 +11,8 @@ def parse_args():
     parser.add_argument('files', metavar='FILES', type=str, nargs='+',
                        help='the audio files that will be inspected')
     parser.add_argument('-r','--raw', action='store_true', default=False)
+    parser.add_argument('-c', '--cover', help='display the cover art',
+                        default=False, action='store_true')
     return parser.parse_args()
     
     
@@ -31,7 +33,9 @@ def main():
             print location + art_details(embedded)
         if not (folder or embedded):
             print 'None found'
-        print    
+        print
+        if args.cover:
+            af.extract_cover().to_pil_image().show()    
         
         
 def art_details(art):
