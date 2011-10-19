@@ -3,7 +3,7 @@ import argparse
 import StringIO
 
 from panko import audiofile
-from panko.audiofile import albumart
+from panko import albumart
 from panko.service import lastfm
 
 def parse_args():
