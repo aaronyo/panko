@@ -1,7 +1,7 @@
 import PIL.Image
 import StringIO
 import os
-import urllib2
+import requests
 
 def load(path):
     format = os.path.splitext(path)[1][1:].lower()
@@ -9,8 +9,8 @@ def load(path):
     return AlbumArt(open(path).read(), format)
     
 def load_url(url):
-    response = urllib2.urlopen(url)
-    return AlbumArt(response.read(), response.headers['content-type'])
+    response = requests.get(url)
+    return AlbumArt(response.content, response.headers['content-type'])
     
 class AlbumArt( object ):
     def __init__( self, bytes, format ):

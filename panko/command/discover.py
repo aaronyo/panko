@@ -16,14 +16,14 @@ def parse_args():
 def main():
     args = parse_args()
     for filepath in args.files:
-        try:
+#        try:
             target_file = audiofile.open(filepath)
             tags = target_file.read_tags()
             if args.cover:
                 cover_url = lastfm.get_cover_art_url(tags)
                 print cover_url
-        except Exception as e:
-            print 'Trouble with file %s: %s' % (filepath, e)
+#        except Exception as e:
+#            print 'Trouble with file %s: %s' % (filepath, e)
 
 if __name__ == '__main__':
     main()
