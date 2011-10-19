@@ -3,13 +3,19 @@ import StringIO
 import os
 import requests
 
+_cached_urls = {}
+
 def load(path):
     format = os.path.splitext(path)[1][1:].lower()
     format = 'jpeg' if format == 'jpg' else format
     return AlbumArt(open(path).read(), format)
     
 def load_url(url):
-    response = requests.get(url)
+    global _cached_urls
+    #FIXME: cache should not grow indefinitely
+    if url not in _cached_urls:
+        _cached_urls[url] = requests.get(url)
+    response = _cached_urls[url]
     return AlbumArt(response.content, response.headers['content-type'])
     
 class AlbumArt( object ):

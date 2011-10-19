@@ -12,6 +12,9 @@ def parse_args():
                          help='the audio files that will be inspected')
     parser.add_argument('-c', '--cover', help='discover url for cover art',
                         default=False, action='store_true')
+    parser.add_argument('-i', '--if-needed',
+                        help='only discover if no value is already present in the file',
+                        default=False, action='store_true')
     parser.add_argument('-u', '--update',
                         help='update the target file(s) with the discovered info',
                         default=False, action='store_true')
@@ -25,14 +28,17 @@ def main():
         try:
             target_file = audiofile.open(filepath)
             tags = target_file.read_tags()
-            if args.cover:
+            if args.cover \
+            and (not args.if_needed or not target_file.has_embedded_cover()):
                 cover_url = lastfm.get_cover_art_url(tags)
                 if args.update:
                     target_file.embed_cover( albumart.load_url(cover_url),
                                              format=args.cover_format )
-                    print 'Updated file "%s" with cover "%s"' % (filepath, cover_url)
+                    print '%s: updated with cover %s' % (filepath, cover_url)
                 else:
                     print cover_url
+            else:
+                print '%s: nothing to do' % filepath
         except Exception as e:
             print 'Trouble with file %s: %s' % (filepath, e)
 
