@@ -12,6 +12,10 @@ def main():
             import info
             info.main()
             sys.exit(0)
+        elif command == 'write':
+            import write
+            write.main()
+            sys.exit(0)
     
     # An appropriate ommand was not specified
     print 'usage: panko info|import'
