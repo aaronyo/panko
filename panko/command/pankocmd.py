@@ -12,9 +12,9 @@ def main():
             import info
             info.main()
             sys.exit(0)
-        elif command == 'write':
-            import write
-            write.main()
+        elif command == 'update':
+            import update
+            update.main()
             sys.exit(0)
         elif command == 'discover':
             import discover
