@@ -22,7 +22,7 @@ def main():
             sys.exit(0)
     
     # An appropriate ommand was not specified
-    print 'usage: panko info|import'
+    print 'usage: panko info|update|discover|import'
     
 if __name__ == '__main__':
     main()
