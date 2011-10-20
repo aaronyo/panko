@@ -132,7 +132,11 @@ class AudioFile( object ):
             
     def read_extended_tags(self, keep_unknown=False):
         rows = sorted(self._extended_tags(keep_unknown), key=lambda r: (r[0], unicode(r[2])))
-        while rows and rows[0][0] == None:
+        # move rows without a common name to the bottom
+        for i in range( len(rows) ):
+            if rows[0][0] != None:
+                # then we've seen the last row without a name
+                break
             rows.append(rows.pop(0))
         return rows
 
