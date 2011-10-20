@@ -11,7 +11,9 @@ def parse_args():
     parser.add_argument('files', metavar='FILES', type=str, nargs='+',
                        help='the audio files that will be inspected')
     parser.add_argument('-r','--raw', action='store_true', default=False)
-    parser.add_argument('-c', '--cover', help='display the cover art',
+    parser.add_argument('-c', '--cover', help='popup cover art images',
+                        default=False, action='store_true')
+    parser.add_argument('-s', '--skip-cover', help='skip cover art lookup',
                         default=False, action='store_true')
     return parser.parse_args()
     
@@ -23,19 +25,22 @@ def main():
         print
         print "Tags:"
         print formatted_rows( af.read_extended_tags(keep_unknown=True), args.raw )
-        print "Cover Art:"
-        folder, embedded = af.folder_cover(), af.extract_cover()
-        if folder:
-            location = "  Folder Image: path='%s', " % af.folder_cover_path()
-            print location + art_details(folder)            
-        if embedded:
-            location =  "  Embedded Image: key='%s', " % af.embedded_cover_key()
-            print location + art_details(embedded)
-        if not (folder or embedded):
-            print 'None found'
-        print
-        if args.cover:
-            af.extract_cover().to_pil_image().show()    
+        if not args.skip_cover:
+            print "Cover Art:"
+            folder, embedded = af.folder_cover(), af.extract_cover()
+            if folder:
+                location = "  Folder Image: path='%s', " % af.folder_cover_path()
+                print location + art_details(folder)
+                if args.cover:
+                    folder.show()
+            if embedded:
+                location =  "  Embedded Image: key='%s', " % af.embedded_cover_key()
+                print location + art_details(embedded)
+                if args.cover:
+                    embedded.show()
+            if not (folder or embedded):
+                print 'None found'
+            print
         
         
 def art_details(art):
