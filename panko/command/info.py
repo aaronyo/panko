@@ -15,6 +15,8 @@ def parse_args():
                         default=False, action='store_true')
     parser.add_argument('-s', '--skip-cover', help='skip cover art lookup',
                         default=False, action='store_true')
+    parser.add_argument('-m', '--skip-md5', help='skip md5 of audio stream',
+                        default=False, action='store_true')
     return parser.parse_args()
     
     
@@ -40,6 +42,10 @@ def main():
                     embedded.show()
             if not (folder or embedded):
                 print 'None found'
+            print
+        if not args.skip_md5:
+            print "Audio Stream MD5:"
+            print "  %s" % af.audio_md5()
             print
         
         

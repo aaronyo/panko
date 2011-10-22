@@ -3,6 +3,7 @@ import os
 import stat
 import collections
 import logging
+import hashlib
 
 from . import tagmap
 from .fileio import mp3, flac, mp4
@@ -139,6 +140,12 @@ class AudioFile( object ):
                 break
             rows.append(rows.pop(0))
         return rows
+        
+    def read_audio_bytes(self):
+        return self.file_io.get_audio_bytes()
+
+    def audio_md5(self):
+        return hashlib.md5(self.file_io.get_audio_bytes()).hexdigest()
 
     def _extended_tags(self, keep_unknown=False):
         rows = []

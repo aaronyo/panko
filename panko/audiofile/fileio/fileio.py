@@ -35,3 +35,6 @@ class FileIO( object ):
     
     def cover_art_key(self):
         raise NotImplementedError
+        
+    def get_audio_bytes(self):
+        raise NotImplementedError

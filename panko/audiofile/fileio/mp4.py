@@ -2,7 +2,15 @@ from mutagen import mp4
 from . import fileio
 from ... import util
 
+# FIXME: try to localize this monkey patch
+# Make a hacked version of the module for retrieving the
+# audio stream data which mutagen does not support
+mp4._CONTAINERS.append('mdat')
+# Tried this but didn't work:
+# http://stackoverflow.com/questions/7495886/use-a-class-in-the-context-of-a-different-module
+
 EXTENSIONS = ['m4a', 'mp4']
+
 
 class MP4IO( fileio.FileIO ):
     kind = 'mp4'
@@ -82,7 +90,6 @@ class MP4IO( fileio.FileIO ):
 
     def keys(self):
         return [ k.encode('string_escape') for k in self._raw_keys() ]
-#        return self._raw_keys()
 
     def _raw_keys(self):
         return ( k for k in self.mtg_file.keys() if not k == 'covr')
@@ -93,3 +100,11 @@ class MP4IO( fileio.FileIO ):
 
     def has_cover_art(self):
         return 'covr' in self.mtg_file
+        
+    def get_audio_bytes(self):
+        fileobj = open(self.path, 'r')
+        data_atom = mp4.Atoms(fileobj)["mdat"]
+        # skip two atom properties: the 4 byte name and the 4 byte length
+        offset, length,  = data_atom.offset+8, data_atom.length-8
+        fileobj.seek(offset)
+        return fileobj.read(length)
