@@ -41,7 +41,7 @@ def main():
                 if args.cover:
                     embedded.show()
             if not (folder or embedded):
-                print 'None found'
+                print '  None'
             print
         if not args.skip_md5:
             print "Audio Stream MD5:"
