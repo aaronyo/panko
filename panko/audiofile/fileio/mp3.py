@@ -14,6 +14,7 @@ class MP3IO( fileio.FileIO ):
     
     def __init__(self, path):
         super(MP3IO, self).__init__( mp3.MP3(path) )
+        self.path = path
         self.join_multivalue = True
         self.join_char = '/'
 
@@ -68,6 +69,10 @@ class MP3IO( fileio.FileIO ):
         
     def keys(self):
         return [k for k, v in self.mtg_file.items() if not isinstance(v, id3.APIC)]
+    
+    def get_audio_bytes(self):
+        data = open(self.path).read()
+        return data[data.find("\xff\xfb"):]
 
     def _set_frame_data(self, frame_name, value):
         frame_class = _get_frame_class(frame_name)
