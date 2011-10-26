@@ -23,14 +23,18 @@ class FLACIO( fileio.FileIO ):
         # looking for flac frame sync code: 1111 1111 1111 10 ??
         offset = data.find("\xff")
         while offset > 0:
-            data = data[offset:]
             # check that next byte matches 1111 10??
-            if ord(data[1]) & 0xfc == 0xf8:
-                return data
+            if ord(data[offset+1]) & 0xfc == 0xf8:
+                break
             else:
-                offset = data.find("\xff")
+                offset = data.find("\xff", offset)
+                
         # FIXME: use custom exception
-        raise Exception('Audio data marker or "synce code" not found')
+        if offset < 0:
+            raise Exception('Audio data marker or "synce code" not found')
+
+        return data[offset:]            
+            
         
     def cover_art_key(self):
         return None
