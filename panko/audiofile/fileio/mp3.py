@@ -5,7 +5,9 @@ from ... import util
 
 EXTENSIONS = ['mp3']
 _ID3_COVER_ART_CODE = 3
-import sys
+
+_ID3_V1_POS = -128
+_ID3_V1_EXTENDED_POS = _ID3_V1_POS - 227
 
 
 class MP3IO( fileio.FileIO ):
@@ -72,7 +74,22 @@ class MP3IO( fileio.FileIO ):
     
     def get_audio_bytes(self):
         data = open(self.path).read()
-        return data[data.find("\xff\xfb"):]
+        # I believe this should work, as any id3 data, including images, should
+        # be sync safe.
+        offset = data.find("\xff\xfb")
+
+        # FIXME: use custom exception
+        if offset < 0:
+            raise Exception('Audio data marker or "synce code" not found')
+        
+        if data[_ID3_V1_EXTENDED_POS:_ID3_V1_EXTENDED_POS+4] == 'TAG+':
+            end = _ID3_V1_EXTENDED_POS
+        elif data[_ID3_V1_POS:_ID3_V1_POS+3] == 'TAG':
+            end = _ID3_V1_POS
+        else:
+            end = len(data)
+            
+        return data[offset:end]
 
     def _set_frame_data(self, frame_name, value):
         frame_class = _get_frame_class(frame_name)
