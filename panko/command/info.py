@@ -23,6 +23,9 @@ def parse_args():
 def main():
     args = parse_args()
     for file_path in args.files:
+        print
+        print "File:"
+        print "  " + file_path
         af = audiofile.open(file_path)
         print
         print "Tags:"
