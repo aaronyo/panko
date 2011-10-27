@@ -6,8 +6,8 @@ a generic tag naming scheme that works across various audio container
 formats (currently flac, m4a and mp3).  The tags and their mappings to each format
 are easily updated in a text-based config file.
 
-A couple example use cases I have used panko for:
-1) Transferring tags when converting my follection from flac to m4a or mp3.
+A few example use cases I have used panko for:
+1) Copying tags when converting my follection from flac to m4a or mp3.
 2) Embedding new album art, including discovery from lastfm.
 3) Finding files with duplicate audio bytes (ignoring tags in the comparison).
 
