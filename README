@@ -19,7 +19,7 @@ album-artist, or it would get written in such a way that iTunes couldn't
 find it, etc.  I wanted a transperent and configurable mechanism for
 mapping the tags to the exact place I needed them in new files.
 
-The Mutagen python library handles all the byte level encoding details
-for any audio format I could ever hope to support.  I probably wouldn't have
-even bothered if I did not have that library to build on top of.
+The Mutagen python library handles all of the byte level encoding details
+for reading and writing meta data.  I probably wouldn't have even bothered
+if I did not have that library to build on top of, so, thank you Mutagen.
 
