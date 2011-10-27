@@ -45,7 +45,7 @@ def main():
             dupe_part = ""
         fname = md5val + dupe_part + ext
         link_target = os.path.join(args.out_dir, fname)
-        os.symlink(filename, link_target)
+        os.symlink(os.path.abspath(filename), link_target)
         hashlinks.append(fname)
         
         
