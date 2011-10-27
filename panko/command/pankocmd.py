@@ -20,9 +20,13 @@ def main():
             import discover
             discover.main()
             sys.exit(0)
+        elif command == 'hashlink':
+            import hashlink
+            hashlink.main()
+            sys.exit(0)
     
     # An appropriate ommand was not specified
-    print 'usage: panko info|update|discover|import'
+    print 'usage: panko info|update|discover|import|hashlink'
     
 if __name__ == '__main__':
     main()
