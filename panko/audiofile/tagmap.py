@@ -5,8 +5,6 @@ from .bytes import Bytes
 from pkg_resources import resource_string
 import yaml
 
-from pkg_resources import resource_string
-
 def load(data=None):
     data = data or resource_string(__name__, 'tagmap.yaml')
     return TagMap(data)
