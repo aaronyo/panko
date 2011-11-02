@@ -91,9 +91,13 @@ class MP3IO( fileio.FileIO ):
             
         return data[offset:end]
 
-    def _set_frame_data(self, frame_name, value):
+    def _set_frame_data(self, frame_name, value):            
         frame_class = _get_frame_class(frame_name)
-        frame = frame_class( encoding=3, text=value )
+        if frame_class == id3.TXXX:
+            # Parse the description out of the frame name
+            frame = frame_class( encoding=3, desc=frame_name[5:], text=value )
+        else:
+            frame = frame_class( encoding=3, text=value )
         self.mtg_file.tags.add( frame )
 
     def _get_frame_data(self, frame_name):
