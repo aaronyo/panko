@@ -5,23 +5,23 @@ def main():
         sys.argv.pop(0)
         command = sys.argv[0]
         if command == 'import':
-            import import_
+            from .command import import_
             import_.main()
             sys.exit(0)
         elif command == 'info':
-            import info
+            from .command import info
             info.main()
             sys.exit(0)
         elif command == 'update':
-            import update
+            from .command import update
             update.main()
             sys.exit(0)
         elif command == 'discover':
-            import discover
+            from .command import discover
             discover.main()
             sys.exit(0)
         elif command == 'hashlink':
-            import hashlink
+            from .command import hashlink
             hashlink.main()
             sys.exit(0)
     
