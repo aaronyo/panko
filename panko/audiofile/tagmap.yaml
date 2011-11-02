@@ -212,3 +212,7 @@ upc:
     mp3: TXXX:UPC
     mp4: ----:com.apple.iTunes:UPC
     flac: upc
+    
+echonest_id:
+    type: unicode
+    mp3: TXXX:echonest_id
