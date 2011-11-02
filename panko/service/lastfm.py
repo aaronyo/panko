@@ -2,32 +2,46 @@ from .. import albumart
 import requests
 import lxml.html
 from lxml import etree
-
-_BASE_URL = 'http://ws.audioscrobbler.com/2.0/'
-_API_KEY='cf7983d893669afcac2431cd699ae22d'
+import ConfigParser
+import pkg_resources
 
 _cached_responses = {}
 
-def _album_info_query_params(tags):
-    return {'method': 'album.getinfo',
-            'api_key': _API_KEY,
-            'artist': tags['album_artist'][0].encode('utf-8'),
-            'album': tags['album_title'][0].encode('utf-8')}
+def make_service(api_key=None, base_url=None):
+    config = ConfigParser.ConfigParser()
+    config.read( pkg_resources.resource_filename(__name__, 'lastfm.ini') )
+    api_key = api_key or config.get('web_service', 'api_key')
+    base_url = base_url or config.get('web_service', 'base_url')
+    return Service(api_key, base_url)
+    
+class Service(object):
+    
+    def __init__(self, api_key, base_url):
+        self._api_key = api_key
+        self._base_url = base_url
 
-def _parse_image_url(xml_str):
-    dom = lxml.html.fromstring( xml_str.encode('utf-8') )
-    return dom.xpath("//image[@size='mega']")[0].text
+    def _album_info_query_params(self, tags):
+        return { 'method': 'album.getinfo',
+                 'api_key': self._api_key,
+                 'artist': tags['album_artist'][0].encode('utf-8'),
+                 'album': tags['album_title'][0].encode('utf-8') }
 
-def get_cover_art_url(tags):
-    global _cached_responses
-    #FIXME: cache should not grow indefinitely
-    params = _album_info_query_params(tags)
-    key = str(sorted(params.items()))
-    if key not in _cached_responses:
-        _cached_responses[key] = requests.get( _BASE_URL, params=params )
-    response = _cached_responses[key]
-    return _parse_image_url( response.content )
+    @staticmethod
+    def _extract_image_url(xml_str):
+        dom = lxml.html.fromstring( xml_str.encode('utf-8') )
+        return dom.xpath("//image[@size='mega']")[0].text
 
-def get_cover_art(tags):
-    image_url = get_cover_art_url(tags)
-    return albumart.load_url(image_url)
+    def get_cover_art_url(self, tags):
+        global _cached_responses
+        #FIXME: cache should not grow indefinitely
+        params = self._album_info_query_params(tags)
+        key = str(sorted(params.items()))
+        if key not in _cached_responses:
+            _cached_responses[key] = requests.get( self._base_url,
+                                                   params=params )
+        response = _cached_responses[key]
+        return self._extract_image_url( response.content )
+
+    def get_cover_art(self, tags):
+        image_url = self.get_cover_art_url(tags)
+        return albumart.load_url(image_url)

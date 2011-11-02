@@ -30,7 +30,8 @@ def main():
             tags = target_file.read_tags()
             if args.cover \
             and (not args.if_needed or not target_file.has_embedded_cover()):
-                cover_url = lastfm.get_cover_art_url(tags)
+                lfm_service = lastfm.make_service()
+                cover_url = lfm_service.get_cover_art_url(tags)
                 if args.update:
                     target_file.embed_cover( albumart.load_url(cover_url),
                                              format=args.cover_format )
