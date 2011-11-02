@@ -5,7 +5,6 @@ from lxml import etree
 import ConfigParser
 import pkg_resources
 
-_cached_responses = {}
 
 def make_service(api_key=None, base_url=None):
     config = ConfigParser.ConfigParser()
@@ -19,6 +18,8 @@ class Service(object):
     def __init__(self, api_key, base_url):
         self._api_key = api_key
         self._base_url = base_url
+        self._cached_responses = {}
+        
 
     def _album_info_query_params(self, tags):
         return { 'method': 'album.getinfo',
@@ -32,14 +33,13 @@ class Service(object):
         return dom.xpath("//image[@size='mega']")[0].text
 
     def get_cover_art_url(self, tags):
-        global _cached_responses
         #FIXME: cache should not grow indefinitely
         params = self._album_info_query_params(tags)
         key = str(sorted(params.items()))
-        if key not in _cached_responses:
-            _cached_responses[key] = requests.get( self._base_url,
+        if key not in self._cached_responses:
+            self._cached_responses[key] = requests.get( self._base_url,
                                                    params=params )
-        response = _cached_responses[key]
+        response = self._cached_responses[key]
         return self._extract_image_url( response.content )
 
     def get_cover_art(self, tags):
