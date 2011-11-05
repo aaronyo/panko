@@ -28,7 +28,7 @@ def parse_args():
 def main():
     args = parse_args()
     for filepath in args.files:
-#        try:
+        try:
             target_file = audiofile.open(filepath)
             tags = target_file.read_tags()
             if args.cover \
@@ -44,7 +44,6 @@ def main():
             elif args.echonest_id \
             and (not args.if_needed or 'echonest_id' not in target_file.read_tags()):
                 echonest.config_service()
-#                echonest_id = en_service.get_echonest_id(filepath)
                 echonest_id = echonest.song.identify(filepath,
                                                      codegen_start = echonest.codegen_start,
                                                      codegen_duration = echonest.codegen_duration)[0].id
@@ -56,8 +55,9 @@ def main():
                     print echonest_id
             else:
                 print '%s: nothing to do' % filepath
-#        except Exception as e:
-#            print 'Trouble with file %s: %s' % (filepath, e)
+        except Exception as e:
+            print 'Trouble with file %s: %s' % (filepath, e)
+        sys.stdout.flush()
 
 if __name__ == '__main__':
     main()
