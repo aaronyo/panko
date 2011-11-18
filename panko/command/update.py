@@ -3,7 +3,7 @@ import argparse
 import StringIO
 
 from panko import audiofile
-from panko import albumart
+from panko.audiofile import albumart
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Display an audio files meta data.')

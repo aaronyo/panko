@@ -3,7 +3,7 @@ import argparse
 import StringIO
 
 from panko import audiofile
-from panko import albumart
+from panko.audiofile import albumart
 from panko.service import lastfm
 from panko.service import echonest
 

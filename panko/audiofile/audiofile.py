@@ -7,7 +7,7 @@ import hashlib
 
 from . import tagmap
 from .fileio import mp3, flac, mp4
-from .. import albumart
+from . import albumart
 from .flexdatetime import FlexDateTime
 from .. import util
 

@@ -1,4 +1,4 @@
-from .. import albumart
+from ..audiofile import albumart
 import requests
 import lxml.html
 from lxml import etree
