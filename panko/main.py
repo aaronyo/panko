@@ -24,6 +24,14 @@ def main():
             from .command import hashlink
             hashlink.main()
             sys.exit(0)
+        elif command == 'filter':
+            from .command import filter
+            filter.main()
+            sys.exit(0)
+        elif command == 'echonest':
+            from .command import echonest
+            echonest.main()
+            sys.exit(0)
     
     # An appropriate ommand was not specified
     print 'usage: panko info|update|discover|import|hashlink'
