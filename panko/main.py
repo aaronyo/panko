@@ -32,9 +32,13 @@ def main():
             from .command import echonest
             echonest.main()
             sys.exit(0)
+        elif command == 'recommend':
+            from .command import recommend
+            recommend.main()
+            sys.exit(0)
     
     # An appropriate ommand was not specified
-    print 'usage: panko info|update|discover|import|hashlink'
+    print 'usage: panko COMMAND [ARGS]'
     
 if __name__ == '__main__':
     main()
